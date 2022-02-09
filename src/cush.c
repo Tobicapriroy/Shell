@@ -261,10 +261,10 @@ handle_child_status(pid_t pid, int status)
 
         // We can take advantage of methods in list.h to solve
         // the problem efficiently.
-
-        struct list_elem * e;
-        for (e = list_begin(&job_list); 
-             e != list_end(&job_list); e = list_next(&job_list)) {
+        
+        for (struct list_elem* e = list_begin(&job_list); 
+             e != list_end(&job_list); 
+             e = list_next(&job_list)) {
             
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
