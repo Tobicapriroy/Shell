@@ -13,8 +13,6 @@
 #include <termios.h>
 #include <sys/wait.h>
 #include <assert.h>
-#include <spawn.h>
-//
 
 /* Since the handed out code contains a number of unused functions. */
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -62,6 +60,7 @@ struct job {
                                         stopped after having been in foreground */
 
     /* Add additional fields here if needed. */
+    int pid; // The pid in the job control
 };
 
 /* Utility functions for job list management.
@@ -222,7 +221,7 @@ wait_for_job(struct job *job)
 
         pid_t child = waitpid(-1, &status, WUNTRACED);
 
-        // When called here, any error returned by waitpid indicates a logic
+        // When called here, any error returned by waitpid indicates a logic 
         // bug in the shell.
         // In particular, ECHILD "No child process" means that there has
         // already been a successful waitpid() call that reaped the child, so
@@ -254,6 +253,113 @@ handle_child_status(pid_t pid, int status)
      *         num_processes_alive if appropriate.
      *         If a process was stopped, save the terminal state.
      */
+    if (pid > 0) {
+        
+        struct job *job = NULL; // We are available to set a struct type that is
+                                // NULL initially
+
+        // We can take advantage of methods in list.h to solve
+        // the problem efficiently.
+        for (list_elem* e = list_begin(&job_list); 
+             e != list_end(&job_list); e = list_next(&job_list)) {
+            
+            // We can access the element with respect to list_entry
+            job = list_entry(e, struct job, elem);
+
+            // If their pid correspond to one another, we may break
+            // the for loop and use the current job.
+            if (job -> pid == pid) {
+                break;
+            }
+            
+            // Otherwise, we want to set job into NULL.
+            job = NULL;
+        }
+
+                 
+        if (job == NULL) {
+            // If the job does not have a corresponding pid as the parameter pid did,
+            // we will receive a fatal error
+            utils_fatal_error("Error. There are no current jobs received from the signal.");
+        }
+        else if (WIFEXITED(status)) {
+            // What happen if the program is exited.
+            // We decrement the variable number_of_processes alive in the job.
+            job -> num_processes_alive--;
+        }
+        else if (WIFSIGNALED(status)) {
+            // What happen if the child process received a signal that is terminated.
+            // We receive a number that terminates the signal.
+            int terNum = WTERMSIG(status);
+
+            // Later, the terNum can be divided into several scenarios: aborted, floating
+            // pointer exception, killed, segmentation fault, and terminated.
+            if (terNum == 6) {
+                // The program is aborted.
+                utils_error("aborted\n");
+            }
+            else if (terNum == 8) {
+                // The program encounters a floating point exception.
+                utils_error("floating point exception\n");
+            }
+            else if (terNum == 9) {
+                // a killed signal errors.
+                utils_error("killed\n");
+            }
+            else if (terNum == 11) {
+                // The segmentation fault is more likely to produce.
+                utils_error("segmentation fault\n");
+            }
+            else if (terNum == 15) {
+                // The process is terminated.
+                utils_error("terminated\n");
+            }
+
+            // The number of processes that is alive decreases.
+            job -> num_processes_alive--;
+        }
+        else if (WIFSTOPPED(status)) {
+            // What happen if the child process receives a signal that is stopped.
+            
+            // The status of the job must be set STOPPED in the enumerator job_status by default.
+            job -> status = STOPPED;
+
+            // Later, the status of the process may be modified automatically.
+            int stpNum = WSTOPSIG(status); 
+
+            // If the status in the struct job is in the foreground stage, we will wish to save the
+            // terminal state.
+            if (job -> status == FOREGROUND) {
+                    // We save the state of the terminal by calling &job -> saved_tty_state
+                    termstate_save(&job ->saved_tty_state);
+                    print_job(job);
+            }
+            else {
+                // The background stage can be depicted in two possibiltiies: (1) stpNum == SIGTTOU 
+                // | stpNum == SIGTTIN. (2) we print the job.
+                if (stpNum == SIGTTOU | stpNum == SIGTTIN) {
+                    // If the stpNum is stopped, the job's status will need the terminal.
+                    job -> status = NEEDSTERMINAL;
+                }
+                else {
+                    print_job(job);
+                }
+            }
+
+
+
+        }
+
+
+
+    }
+    else {
+        utils_fatal_error()
+    }
+
+
+     
+
 
 }
 
