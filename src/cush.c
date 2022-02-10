@@ -74,6 +74,20 @@ static struct list job_list;
 
 static struct job * jid2job[MAXJOBS];
 
+// an array used to store the jobs
+static int stopped_job[MAXJOBS];
+
+// a variable that can be set initially
+static int stopped_job_num = 0;
+
+
+
+static void added_stopped_job(int jid) 
+{
+    stopped_job[stopped_job_num] = jid;
+    stopped_job_num++;
+}
+
 /* Return job corresponding to jid */
 static struct job * 
 get_job_from_jid(int jid)
@@ -285,86 +299,82 @@ handle_child_status(pid_t pid, int status)
             // we will receive a fatal error
             utils_fatal_error("Error. There are no current jobs received from the signal.");
         }
-        else if (WIFEXITED(status)) {
-            // What happen if the program is exited.
-            // We decrement the variable number_of_processes alive in the job.
-            job -> num_processes_alive--;
-        }
-        else if (WIFSIGNALED(status)) {
-            // What happen if the child process received a signal that is terminated.
-            // We receive a number that terminates the signal.
-            int terNum = WTERMSIG(status);
-
-            // Later, the terNum can be divided into several scenarios: aborted, floating
-            // pointer exception, killed, segmentation fault, and terminated.
-            if (terNum == 6) {
-                // The program is aborted.
-                utils_error("aborted\n");
-            }
-            else if (terNum == 8) {
-                // The program encounters a floating point exception.
-                utils_error("floating point exception\n");
-            }
-            else if (terNum == 9) {
-                // a killed signal errors.
-                utils_error("killed\n");
-            }
-            else if (terNum == 11) {
-                // The segmentation fault is more likely to produce.
-                utils_error("segmentation fault\n");
-            }
-            else if (terNum == 15) {
-                // The process is terminated.
-                utils_error("terminated\n");
-            }
-
-            // The number of processes that is alive decreases.
-            job -> num_processes_alive--;
-        }
-        else if (WIFSTOPPED(status)) {
-            // What happen if the child process receives a signal that is stopped.
+        else {
             
-            // The status of the job must be set STOPPED in the enumerator job_status by default.
-            job -> status = STOPPED;
+            if (WIFEXITED(status)) {
+               // What happen if the program is exited.
+               // We decrement the variable number_of_processes alive in the job.
+               job -> num_processes_alive--;
+            }
+            else if (WIFSIGNALED(status)) {
+               // What happen if the child process received a signal that is terminated.
+               // We receive a number that terminates the signal.
+               int terNum = WTERMSIG(status);
 
-            // Later, the status of the process may be modified automatically.
-            int stpNum = WSTOPSIG(status); 
+               // Later, the terNum can be divided into several scenarios: aborted, floating
+               // pointer exception, killed, segmentation fault, and terminated.
+               if (terNum == 6) {
+                  // The program is aborted.
+                  utils_error("aborted\n");
+               }
+               else if (terNum == 8) {
+                  // The program encounters a floating point exception.
+                  utils_error("floating point exception\n");
+               }
+               else if (terNum == 9) {
+                  // a killed signal errors.
+                  utils_error("killed\n");
+               }
+               else if (terNum == 11) {
+                  // The segmentation fault is more likely to produce.
+                  utils_error("segmentation fault\n");
+               }
+               else if (terNum == 15) {
+                  // The process is terminated.
+                  utils_error("terminated\n");
+               }
 
-            // If the status in the struct job is in the foreground stage, we will wish to save the
-            // terminal state.
-            if (job -> status == FOREGROUND) {
+               // The number of processes that is alive decreases.
+               job -> num_processes_alive--;
+            }
+            else if (WIFSTOPPED(status)) {
+               // What happen if the child process receives a signal that is stopped.
+            
+               // The status of the job must be set STOPPED in the enumerator job_status by default.
+               job -> status = STOPPED;
+
+               // Later, the status of the process may be modified automatically.
+               int stpNum = WSTOPSIG(status); 
+
+               // If the status in the struct job is in the foreground stage, we will wish to save the
+               // terminal state.
+               if (job -> status == FOREGROUND) {
                     // We save the state of the terminal by calling &job -> saved_tty_state
                     termstate_save(&job ->saved_tty_state);
                     print_job(job);
-            }
-            else {
-                // The background stage can be depicted in two possibiltiies: (1) stpNum == SIGTTOU 
-                // | stpNum == SIGTTIN. (2) we print the job.
-                if (stpNum == SIGTTOU | stpNum == SIGTTIN) {
-                    // If the stpNum is stopped, the job's status will need the terminal.
-                    job -> status = NEEDSTERMINAL;
+               }
+               else {
+                   // The background stage can be depicted in two possibiltiies: (1) stpNum == SIGTTOU 
+                   // | stpNum == SIGTTIN. (2) we print the job.
+                   if (stpNum == SIGTTOU | stpNum == SIGTTIN) {
+                        // If the stpNum is stopped, the job's status will need the terminal.
+                        job -> status = NEEDSTERMINAL;
+                   }
+                   else {
+                        print_job(job);
+                   }
                 }
-                else {
-                    print_job(job);
-                }
+                added_stopped_job(job -> jid);
             }
-
-
-
+            // After each instruction is completed, we need to return the 
+            // terminal back to shell
+            termstate_give_terminal_back_to_shell();
         }
-
-
-
     }
     else {
         utils_fatal_error("Error in waiting for signal from the child process");
 
     }
-
-
-     
-
-
 }
 
 int
