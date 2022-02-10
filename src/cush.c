@@ -431,15 +431,16 @@ int main(int ac, char *av[])
     {
 
         /* Do not output a prompt unless shell's stdin is a terminal */
-        char *prompt = isatty(0) ? build_prompt() : NULL;
-        char *cmdline = readline(prompt);
-        free(prompt);
+        char *prompt = isatty(0) ? build_prompt() : NULL; // We create a prompt based on isatty(0)
+        char *cmdline = readline(prompt); // Later, we want to read some lines in the command
+        free(prompt); // After each line is finished reading, we will free the prompt
 
         if (cmdline == NULL) /* User typed EOF */
             break;
 
-        struct ast_command_line *cline = ast_parse_command_line(cmdline);
-        free(cmdline);
+        struct ast_command_line *cline = ast_parse_command_line(cmdline); // We would like to parse 
+                                                                          // each cmdline
+        free(cmdline); // We would like to 
         if (cline == NULL) /* Error in command line */
             continue;
 
