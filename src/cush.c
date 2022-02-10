@@ -1,10 +1,10 @@
 /*
  * cush - the customizable shell.
  *
- * Developed by Godmar Back for CS 3214 Summer 2020 
+ * Developed by Godmar Back for CS 3214 Summer 2020
  * Virginia Tech.  Augmented to use posix_spawn in Fall 2021.
  */
-#define _GNU_SOURCE    1
+#define _GNU_SOURCE 1
 #include <stdio.h>
 #include <readline/readline.h>
 #include <unistd.h>
@@ -26,14 +26,14 @@
 
 static void handle_child_status(pid_t pid, int status);
 
-static char* custom_prompt = "\\! \\u@\\h in \\w";
+extern char **environ;
 
 static void
 usage(char *progname)
 {
     printf("Usage: %s -h\n"
-        " -h            print this help\n",
-        progname);
+           " -h            print this help\n",
+           progname);
 
     exit(EXIT_SUCCESS);
 }
@@ -45,37 +45,39 @@ build_prompt(void)
     return strdup("cush> ");
 }
 
-enum job_status {
-    FOREGROUND,     /* job is running in foreground.  Only one job can be
-                       in the foreground state. */
-    BACKGROUND,     /* job is running in background */
-    STOPPED,        /* job is stopped via SIGSTOP */
-    NEEDSTERMINAL,  /* job is stopped because it was a background job
-                       and requires exclusive terminal access */
+enum job_status
+{
+    FOREGROUND,    /* job is running in foreground.  Only one job can be
+                      in the foreground state. */
+    BACKGROUND,    /* job is running in background */
+    STOPPED,       /* job is stopped via SIGSTOP */
+    NEEDSTERMINAL, /* job is stopped because it was a background job
+                      and requires exclusive terminal access */
 };
 
-struct job {
-    struct list_elem elem;   /* Link element for jobs list. */
-    struct ast_pipeline *pipe;  /* The pipeline of commands this job represents */
-    int     jid;             /* Job id. */
-    enum job_status status;  /* Job status. */ 
-    int  num_processes_alive;   /* The number of processes that we know to be alive */
-    struct termios saved_tty_state;  /* The state of the terminal when this job was 
-                                        stopped after having been in foreground */
+struct job
+{
+    struct list_elem elem;          /* Link element for jobs list. */
+    struct ast_pipeline *pipe;      /* The pipeline of commands this job represents */
+    int jid;                        /* Job id. */
+    enum job_status status;         /* Job status. */
+    int num_processes_alive;        /* The number of processes that we know to be alive */
+    struct termios saved_tty_state; /* The state of the terminal when this job was
+                                       stopped after having been in foreground */
 
     /* Add additional fields here if needed. */
     int pid; // The pid in the job control
 };
 
 /* Utility functions for job list management.
- * We use 2 data structures: 
+ * We use 2 data structures:
  * (a) an array jid2job to quickly find a job based on its id
  * (b) a linked list to support iteration
  */
-#define MAXJOBS (1<<16)
+#define MAXJOBS (1 << 16)
 static struct list job_list;
 
-static struct job * jid2job[MAXJOBS];
+static struct job *jid2job[MAXJOBS];
 
 // an array used to store the jobs
 static int stopped_job[MAXJOBS];
@@ -83,16 +85,14 @@ static int stopped_job[MAXJOBS];
 // a variable that can be set initially
 static int stopped_job_num = 0;
 
-
-
-static void added_stopped_job(int jid) 
+static void added_stopped_job(int jid)
 {
     stopped_job[stopped_job_num] = jid;
     stopped_job_num++;
 }
 
 /* Return job corresponding to jid */
-static struct job * 
+static struct job *
 get_job_from_jid(int jid)
 {
     if (jid > 0 && jid < MAXJOBS && jid2job[jid] != NULL)
@@ -105,18 +105,21 @@ get_job_from_jid(int jid)
 static struct job *
 add_job(struct ast_pipeline *pipe)
 {
-    struct job * job = malloc(sizeof *job);
+    struct job *job = malloc(sizeof *job);
     job->pipe = pipe;
     job->num_processes_alive = 0;
     list_push_back(&job_list, &job->elem);
 
-    job -> pid = 0;
-    if (pipe -> bg_job) {
-        job -> status = BACKGROUND;
+    job->pid = 0;
+    if (pipe->bg_job)
+    {
+        job->status = BACKGROUND;
     }
 
-    for (int i = 1; i < MAXJOBS; i++) {
-        if (jid2job[i] == NULL) {
+    for (int i = 1; i < MAXJOBS; i++)
+    {
+        if (jid2job[i] == NULL)
+        {
             jid2job[i] = job;
             job->jid = i;
             return job;
@@ -145,7 +148,8 @@ delete_job(struct job *job)
 static const char *
 get_status(enum job_status status)
 {
-    switch (status) {
+    switch (status)
+    {
     case FOREGROUND:
         return "Foreground";
     case BACKGROUND:
@@ -163,8 +167,9 @@ get_status(enum job_status status)
 static void
 print_cmdline(struct ast_pipeline *pipeline)
 {
-    struct list_elem * e = list_begin (&pipeline->commands); 
-    for (; e != list_end (&pipeline->commands); e = list_next(e)) {
+    struct list_elem *e = list_begin(&pipeline->commands);
+    for (; e != list_end(&pipeline->commands); e = list_next(e))
+    {
         struct ast_command *cmd = list_entry(e, struct ast_command, elem);
         if (e != list_begin(&pipeline->commands))
             printf("| ");
@@ -195,8 +200,8 @@ print_job(struct job *job)
  * an already pending SIGCHLD is delivered even though
  * a foreground process was already reaped), ignore when
  * waitpid returns -1.
- * Use a loop with WNOHANG since only a single SIGCHLD 
- * signal may be delivered for multiple children that have 
+ * Use a loop with WNOHANG since only a single SIGCHLD
+ * signal may be delivered for multiple children that have
  * exited. All of them need to be reaped.
  */
 static void
@@ -207,7 +212,8 @@ sigchld_handler(int sig, siginfo_t *info, void *_ctxt)
 
     assert(sig == SIGCHLD);
 
-    while ((child = waitpid(-1, &status, WUNTRACED|WNOHANG)) > 0) {
+    while ((child = waitpid(-1, &status, WUNTRACED | WNOHANG)) > 0)
+    {
         handle_child_status(child, status);
     }
 }
@@ -217,8 +223,8 @@ sigchld_handler(int sig, siginfo_t *info, void *_ctxt)
  * You should call this function from a) where you wait for
  * jobs started without the &; and b) where you implement the
  * 'fg' command.
- * 
- * Implement handle_child_status such that it records the 
+ *
+ * Implement handle_child_status such that it records the
  * information obtained from waitpid() for pid 'child.'
  *
  * If a process exited, it must find the job to which it
@@ -240,12 +246,13 @@ wait_for_job(struct job *job)
 {
     assert(signal_is_blocked(SIGCHLD));
 
-    while (job->status == FOREGROUND && job->num_processes_alive > 0) {
+    while (job->status == FOREGROUND && job->num_processes_alive > 0)
+    {
         int status;
 
         pid_t child = waitpid(-1, &status, WUNTRACED);
 
-        // When called here, any error returned by waitpid indicates a logic 
+        // When called here, any error returned by waitpid indicates a logic
         // bug in the shell.
         // In particular, ECHILD "No child process" means that there has
         // already been a successful waitpid() call that reaped the child, so
@@ -261,139 +268,154 @@ wait_for_job(struct job *job)
     }
 }
 
-
-
 static void
 handle_child_status(pid_t pid, int status)
 {
     assert(signal_is_blocked(SIGCHLD));
 
-    /* To be implemented. 
+    /* To be implemented.
      * Step 1. Given the pid, determine which job this pid is a part of
      *         (how to do this is not part of the provided code.)
      * Step 2. Determine what status change occurred using the
      *         WIF*() macros.
-     * Step 3. Update the job status accordingly, and adjust 
+     * Step 3. Update the job status accordingly, and adjust
      *         num_processes_alive if appropriate.
      *         If a process was stopped, save the terminal state.
      */
-    if (pid > 0) {
-        
+    if (pid > 0)
+    {
+
         struct job *job = NULL; // We are available to set a struct type that is
                                 // NULL initially
 
         // We can take advantage of methods in list.h to solve
         // the problem efficiently.
-        
-        for (struct list_elem* e = list_begin(&job_list); 
-             e != list_end(&job_list); 
-             e = list_next(&job_list)) {
-            
+
+        for (struct list_elem *e = list_begin(&job_list);
+             e != list_end(&job_list);
+             e = list_next(e))
+        {
+
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
 
             // If their pid correspond to one another, we may break
             // the for loop and use the current job.
-            if (job -> pid == pid) {
+            if (job->pid == pid)
+            {
                 break;
             }
-            
+
             // Otherwise, we want to set job into NULL.
             job = NULL;
         }
 
-                 
-        if (job == NULL) {
+        if (job == NULL)
+        {
             // If the job does not have a corresponding pid as the parameter pid did,
             // we will receive a fatal error
             utils_fatal_error("Error. There are no current jobs received from the signal.");
         }
-        else {
-            
-            if (WIFEXITED(status)) {
-               // What happen if the program is exited.
-               // We decrement the variable number_of_processes alive in the job.
-               job -> num_processes_alive--;
+        else
+        {
+
+            if (WIFEXITED(status))
+            {
+                // What happen if the program is exited.
+                // We decrement the variable number_of_processes alive in the job.
+                job->num_processes_alive--;
             }
-            else if (WIFSIGNALED(status)) {
-               // What happen if the child process received a signal that is terminated.
-               // We receive a number that terminates the signal.
-               int terNum = WTERMSIG(status);
+            else if (WIFSIGNALED(status))
+            {
+                // What happen if the child process received a signal that is terminated.
+                // We receive a number that terminates the signal.
+                int terNum = WTERMSIG(status);
 
-               // Later, the terNum can be divided into several scenarios: aborted, floating
-               // pointer exception, killed, segmentation fault, and terminated.
-               if (terNum == 6) {
-                  // The program is aborted.
-                  utils_error("aborted\n");
-               }
-               else if (terNum == 8) {
-                  // The program encounters a floating point exception.
-                  utils_error("floating point exception\n");
-               }
-               else if (terNum == 9) {
-                  // a killed signal errors.
-                  utils_error("killed\n");
-               }
-               else if (terNum == 11) {
-                  // The segmentation fault is more likely to produce.
-                  utils_error("segmentation fault\n");
-               }
-               else if (terNum == 15) {
-                  // The process is terminated.
-                  utils_error("terminated\n");
-               }
-
-               // The number of processes that is alive decreases.
-               job -> num_processes_alive--;
-            }
-            else if (WIFSTOPPED(status)) {
-               // What happen if the child process receives a signal that is stopped.
-            
-               // The status of the job must be set STOPPED in the enumerator job_status by default.
-               job -> status = STOPPED;
-
-               // Later, the status of the process may be modified automatically.
-               int stpNum = WSTOPSIG(status); 
-
-               // If the status in the struct job is in the foreground stage, we will wish to save the
-               // terminal state.
-               if (job -> status == FOREGROUND) {
-                    // We save the state of the terminal by calling &job -> saved_tty_state
-                    termstate_save(&job ->saved_tty_state);
-                    print_job(job);
-               }
-               else {
-                   // The background stage can be depicted in two possibiltiies: (1) stpNum == SIGTTOU 
-                   // | stpNum == SIGTTIN. (2) we print the job.
-                   if (stpNum == SIGTTOU | stpNum == SIGTTIN) {
-                        // If the stpNum is stopped, the job's status will need the terminal.
-                        job -> status = NEEDSTERMINAL;
-                   }
-                   else {
-                        print_job(job);
-                   }
+                // Later, the terNum can be divided into several scenarios: aborted, floating
+                // pointer exception, killed, segmentation fault, and terminated.
+                if (terNum == 6)
+                {
+                    // The program is aborted.
+                    utils_error("aborted\n");
                 }
-                added_stopped_job(job -> jid);
+                else if (terNum == 8)
+                {
+                    // The program encounters a floating point exception.
+                    utils_error("floating point exception\n");
+                }
+                else if (terNum == 9)
+                {
+                    // a killed signal errors.
+                    utils_error("killed\n");
+                }
+                else if (terNum == 11)
+                {
+                    // The segmentation fault is more likely to produce.
+                    utils_error("segmentation fault\n");
+                }
+                else if (terNum == 15)
+                {
+                    // The process is terminated.
+                    utils_error("terminated\n");
+                }
+
+                // The number of processes that is alive decreases.
+                job->num_processes_alive--;
             }
-            // After each instruction is completed, we need to return the 
+            else if (WIFSTOPPED(status))
+            {
+                // What happen if the child process receives a signal that is stopped.
+
+                // The status of the job must be set STOPPED in the enumerator job_status by default.
+                job->status = STOPPED;
+
+                // Later, the status of the process may be modified automatically.
+                int stpNum = WSTOPSIG(status);
+
+                // If the status in the struct job is in the foreground stage, we will wish to save the
+                // terminal state.
+                if (job->status == FOREGROUND)
+                {
+                    // We save the state of the terminal by calling &job -> saved_tty_state
+                    termstate_save(&job->saved_tty_state);
+                    print_job(job);
+                }
+                else
+                {
+                    // The background stage can be depicted in two possibiltiies: (1) stpNum == SIGTTOU
+                    // | stpNum == SIGTTIN. (2) we print the job.
+                    if (stpNum == SIGTTOU || stpNum == SIGTTIN)
+                    {
+                        // If the stpNum is stopped, the job's status will need the terminal.
+                        job->status = NEEDSTERMINAL;
+                    }
+                    else
+                    {
+                        print_job(job);
+                    }
+                }
+                added_stopped_job(job->jid);
+            }
+            // After each instruction is completed, we need to return the
             // terminal back to shell
             termstate_give_terminal_back_to_shell();
         }
     }
-    else {
+    else
+    {
         utils_fatal_error("Error in waiting for signal from the child process");
-
     }
 }
 
-int
-main(int ac, char *av[])
+int main(int ac, char *av[])
 {
     int opt;
 
     /* Process command-line arguments. See getopt(3) */
-    while ((opt = getopt(ac, av, "h")) > 0) {
-        switch (opt) {
+    while ((opt = getopt(ac, av, "h")) > 0)
+    {
+        switch (opt)
+        {
         case 'h':
             usage(av[0]);
             break;
@@ -405,28 +427,58 @@ main(int ac, char *av[])
     termstate_init();
 
     /* Read/eval loop. */
-    for (;;) {
+    for (;;)
+    {
 
         /* Do not output a prompt unless shell's stdin is a terminal */
-        char * prompt = isatty(0) ? build_prompt() : NULL;
-        char * cmdline = readline(prompt);
-        free (prompt);
+        char *prompt = isatty(0) ? build_prompt() : NULL;
+        char *cmdline = readline(prompt);
+        free(prompt);
 
-        if (cmdline == NULL)  /* User typed EOF */
+        if (cmdline == NULL) /* User typed EOF */
             break;
 
-        struct ast_command_line * cline = ast_parse_command_line(cmdline);
-        free (cmdline);
-        if (cline == NULL)                  /* Error in command line */
+        struct ast_command_line *cline = ast_parse_command_line(cmdline);
+        free(cmdline);
+        if (cline == NULL) /* Error in command line */
             continue;
 
-        if (list_empty(&cline->pipes)) {    /* User hit enter */
+        if (list_empty(&cline->pipes))
+        { /* User hit enter */
             ast_command_line_free(cline);
             continue;
         }
 
-        ast_command_line_print(cline);      /* Output a representation of
-                                               the entered command line */
+        for (struct list_elem *e = list_begin(&cline->pipes);
+             e != list_end(&cline->pipes);
+             e = list_next(e))
+        {
+            struct ast_pipeline *pipe = list_entry(e, struct ast_pipeline, elem);
+            signal_block(SIGCHLD);
+            struct job* new_job = add_job(pipe);
+            new_job->status = FOREGROUND;
+            
+            for (struct list_elem *x = list_begin(&pipe->commands);
+                 x != list_end(&pipe->commands);
+                 x = list_next(x))
+            {
+                pid_t child;
+                posix_spawn_file_actions_t file_actions;
+                posix_spawn_file_actions_init(&file_actions);
+
+                posix_spawnattr_t attr;
+                posix_spawnattr_init(&attr);
+
+                struct ast_command *command = list_entry(x, struct ast_command, elem);
+                
+
+                posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
+            }
+            wait_for_job(new_job);
+        }
+
+        ast_command_line_print(cline); /* Output a representation of
+                                          the entered command line */
 
         /* Free the command line.
          * This will free the ast_pipeline objects still contained
