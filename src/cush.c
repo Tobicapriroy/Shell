@@ -42,7 +42,7 @@ usage(char *progname)
 static char *
 build_prompt(void)
 {
-    return strdup("cush> ");
+    return strdup("> ");
 }
 
 enum job_status
@@ -245,7 +245,7 @@ static void
 wait_for_job(struct job *job)
 {
     assert(signal_is_blocked(SIGCHLD));
-
+    
     while (job->status == FOREGROUND && job->num_processes_alive > 0)
     {
         int status;
@@ -298,6 +298,7 @@ handle_child_status(pid_t pid, int status)
 
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
+            
 
             // If their pid correspond to one another, we may break
             // the for loop and use the current job.
@@ -314,7 +315,7 @@ handle_child_status(pid_t pid, int status)
         {
             // If the job does not have a corresponding pid as the parameter pid did,
             // we will receive a fatal error
-            utils_fatal_error("Error. There are no current jobs received from the signal.");
+            utils_fatal_error("Error There are no current jobs received from the signal.");
         }
         else
         {
@@ -407,6 +408,14 @@ handle_child_status(pid_t pid, int status)
     }
 }
 
+static void getPath() {
+    int size = 200;
+    char * buff = calloc(size+1, sizeof(char));
+    getcwd(buff, 200);
+    fprintf(stdout, "cush in %s ", buff);
+    free(buff);
+}
+
 int main(int ac, char *av[])
 {
     int opt;
@@ -431,9 +440,16 @@ int main(int ac, char *av[])
     {
 
         /* Do not output a prompt unless shell's stdin is a terminal */
+<<<<<<< HEAD
         char *prompt = isatty(0) ? build_prompt() : NULL; // We create a prompt based on isatty(0)
         char *cmdline = readline(prompt); // Later, we want to read some lines in the command
         free(prompt); // After each line is finished reading, we will free the prompt
+=======
+        getPath();
+        char *prompt = isatty(0) ? build_prompt() : NULL;
+        char *cmdline = readline(prompt);
+        free(prompt);
+>>>>>>> ca383a9c5e2c7fbd1cdd3dc274129bca13ecb8a6
 
         if (cmdline == NULL) /* User typed EOF */
             break;
@@ -457,7 +473,7 @@ int main(int ac, char *av[])
             struct ast_pipeline *pipe = list_entry(e, struct ast_pipeline, elem);
             signal_block(SIGCHLD);
             struct job* new_job = add_job(pipe);
-            new_job->status = FOREGROUND;
+            new_job->num_processes_alive++;
             
             for (struct list_elem *x = list_begin(&pipe->commands);
                  x != list_end(&pipe->commands);
