@@ -440,16 +440,11 @@ int main(int ac, char *av[])
     {
 
         /* Do not output a prompt unless shell's stdin is a terminal */
-<<<<<<< HEAD
-        char *prompt = isatty(0) ? build_prompt() : NULL; // We create a prompt based on isatty(0)
-        char *cmdline = readline(prompt); // Later, we want to read some lines in the command
-        free(prompt); // After each line is finished reading, we will free the prompt
-=======
+
         getPath();
         char *prompt = isatty(0) ? build_prompt() : NULL;
         char *cmdline = readline(prompt);
         free(prompt);
->>>>>>> ca383a9c5e2c7fbd1cdd3dc274129bca13ecb8a6
 
         if (cmdline == NULL) /* User typed EOF */
             break;
