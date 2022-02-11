@@ -89,7 +89,7 @@ static int stopped_job[MAXJOBS];
 static int stopped_job_num = 0;
 
 /*
- *  
+ *
  * add the stopped job to the stopped job
  * array
  */
@@ -104,41 +104,44 @@ static void added_stopped_job(int jid)
  * job array
  *
  */
-static void remove_stopped_job(int jid) {
+static void remove_stopped_job(int jid)
+{
     bool start = false; // I can use a variable named
                         // start of boolean type to
                         // resolve the problem.
 
-    
-    for (int i = 0; i < stopped_job_num; i++) {
-        if (!start & jid == stopped_job[i]) {
-           // The job is detected
+    for (int i = 0; i < stopped_job_num; i++)
+    {
+        if (!start & jid == stopped_job[i])
+        {
+            // The job is detected
             start = true;
         }
 
-
-        if (start) {
+        if (start)
+        {
             // the position of the job that is not last
-            if (i < stopped_job_num - 1) {
+            if (i < stopped_job_num - 1)
+            {
                 // We need to move to the next position
-                 stopped_job[i] = stopped_job[i + 1];
+                stopped_job[i] = stopped_job[i + 1];
             }
 
             // If this is the last position in the job array,
             // we must set it to zero.
-            if (i == stopped_job_num - 1) {
+            if (i == stopped_job_num - 1)
+            {
                 stopped_job[i] == 0;
             }
         }
     }
 
-    
-    if (start) {
-        // reduce the number of jobs in the job array after 
+    if (start)
+    {
+        // reduce the number of jobs in the job array after
         // the execution of the array
-        stopped_job_num --;
-    }            
-
+        stopped_job_num--;
+    }
 }
 
 /* Return job corresponding to jid */
@@ -295,7 +298,7 @@ static void
 wait_for_job(struct job *job)
 {
     assert(signal_is_blocked(SIGCHLD));
-    
+
     while (job->status == FOREGROUND && job->num_processes_alive > 0)
     {
         int status;
@@ -340,7 +343,7 @@ handle_child_status(pid_t pid, int status)
 
         // We can take advantage of methods in list.h to solve
         // the problem efficiently.
-        
+
         int found = -1; // the initial value of job pid.
 
         for (struct list_elem *e = list_begin(&job_list);
@@ -350,25 +353,27 @@ handle_child_status(pid_t pid, int status)
 
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
-            
+
             struct ast_command *com = NULL;
-            // use a for loop to iterate every process in one job 
+            // use a for loop to iterate every process in one job
             for (struct list_elem *p = list_begin(&job->pipe->commands);
-                 p != list_end(&job->pipe->commands); p = list_next(p)) {
+                 p != list_end(&job->pipe->commands); p = list_next(p))
+            {
 
-                     com = list_entry(p, struct ast_command, elem);
-                     // If their pid correspond to one another, we may break
-                    // the for loop and use the current job.
+                com = list_entry(p, struct ast_command, elem);
+                // If their pid correspond to one another, we may break
+                // the for loop and use the current job.
 
-                     if (com->pid == pid)
-                     {
-                          found = job -> jid;
-                          break;
-                    }
+                if (com->pid == pid)
+                {
+                    found = job->jid;
+                    break;
+                }
             }
 
-            if (found != -1) {
-               break;    
+            if (found != -1)
+            {
+                break;
             }
 
             // Otherwise, we want to set job into NULL.
@@ -472,63 +477,76 @@ handle_child_status(pid_t pid, int status)
     }
 }
 
-
-static void execute(struct ast_pipeline* currpipeline) {
+static void execute(struct ast_pipeline *currpipeline)
+{
 
     // We would like to add jobs to the current pipeline
-    struct job* job = add_job(currpipeline);
+    struct job *job = add_job(currpipeline);
 
     // Right now, we should make some pipes, a technique used to
     // maintain the connection between two proceses.
-    int size = list_size(&currpipeline -> commands);
+    int size = list_size(&currpipeline->commands);
     int pipes[size][2];
-    for (int i = 1; i < size + 1; i++) {
+    for (int i = 1; i < size + 1; i++)
+    {
         pipe(pipes[i]);
     }
 
     // The input file descriptor is currently passing into
     // pipeline.
     int input_fd = -1;
-    while (currpipeline -> iored_input != NULL) {
+    while (currpipeline->iored_input != NULL)
+    {
         // read the input file descriptor
-        input_fd = open(currpipeline -> iored_input, O_RDONLY);
+        input_fd = open(currpipeline->iored_input, O_RDONLY);
     }
 
     // The output file descriptor is currently passing into
     // the pipeline.
     int output_fd = -1;
-    while (currpipeline -> iored_output != NULL) {
-        
-        if (currpipeline -> append_to_output) {
+    while (currpipeline->iored_output != NULL)
+    {
+
+        if (currpipeline->append_to_output)
+        {
             // the file descriptor can be written if appended successfully.
-            output_fd = open(currpipeline -> iored_output, O_WRONLY|O_CREAT|O_APPEND, 0750);
+            output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT | O_APPEND, 0750);
         }
-        else {
+        else
+        {
             // the file descriptor can be written if it is failed to append.
-            output_fd = open(currpipeline -> iored_output, O_WRONLY|O_CREAT, 0750);
+            output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT, 0750);
         }
     }
 
     int cmdnum = 0;
     int pid = 0;
 
-    Signal_block(SIGCHLD);
+    signal_block(SIGCHLD);
 
-    for (struct list_elem* e = list_begin(&currpipeline -> commands); e != list_end(&currpipeline -> commands);
-         e = list_next(e)) {
+    for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
+         e = list_next(e))
+    {
+        job->num_processes_alive++;
+        pid_t child; // a child is established.
+        posix_spawn_file_actions_t file_actions;
+        posix_spawn_file_actions_init(&file_actions);
 
+        posix_spawnattr_t attr;
+        posix_spawnattr_init(&attr);
+
+        struct ast_command *command = list_entry(e, struct ast_command, elem);
+
+        posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
+        command->pid = child;
     }
-
-
-
-
-
-
+    wait_for_job(job);
 }
 
-static void getPath() {
+static void getPath()
+{
     int size = 200;
-    char * buff = calloc(size+1, sizeof(char));
+    char *buff = calloc(size + 1, sizeof(char));
     getcwd(buff, 200);
     fprintf(stdout, "cush in %s ", buff);
     free(buff);
@@ -540,8 +558,8 @@ int main(int ac, char *av[])
 
     /* Process command-line arguments. See getopt(3) */
     while ((opt = getopt(ac, av, "h")) > 0)
-      // We would like to determine whether or not
-      // the option is available to be used.
+    // We would like to determine whether or not
+    // the option is available to be used.
     {
         switch (opt)
         {
@@ -569,12 +587,12 @@ int main(int ac, char *av[])
         if (cmdline == NULL) /* User typed EOF */
             break;
 
-        struct ast_command_line *cline = ast_parse_command_line(cmdline); // We would like to parse 
-                                                                          // each job, where 
+        struct ast_command_line *cline = ast_parse_command_line(cmdline); // We would like to parse
+                                                                          // each job, where
                                                                           // job contains multiple
                                                                           // pipelines.
-        free(cmdline); // We would like to 
-        if (cline == NULL) /* Error in command line */
+        free(cmdline);                                                    // We would like to
+        if (cline == NULL)                                                /* Error in command line */
             // If something goes wrong with pipeline, what are we supposed
             // to do
             continue;
@@ -594,29 +612,7 @@ int main(int ac, char *av[])
         {
             // We deal with pipe one-by-one.
             struct ast_pipeline *pipe = list_entry(e, struct ast_pipeline, elem);
-            signal_block(SIGCHLD); 
-            struct job* new_job = add_job(pipe); // We add a job to a pipeline
-            new_job->num_processes_alive++; // the processes for each job are 
-                                            // likely to be increased.
-            
-            // We are ready to execute the commands in the pipe.
-            for (struct list_elem *x = list_begin(&pipe->commands);
-                 x != list_end(&pipe->commands);
-                 x = list_next(x))
-            {
-                pid_t child; // a child is established.
-                posix_spawn_file_actions_t file_actions;
-                posix_spawn_file_actions_init(&file_actions);
-
-                posix_spawnattr_t attr;
-                posix_spawnattr_init(&attr);
-
-                struct ast_command *command = list_entry(x, struct ast_command, elem);
-                
-
-                posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
-            }
-            wait_for_job(new_job);
+            execute(pipe);
         }
 
         ast_command_line_print(cline); /* Output a representation of
