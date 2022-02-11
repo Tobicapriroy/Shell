@@ -160,10 +160,7 @@ add_job(struct ast_pipeline *pipe)
     job->num_processes_alive = 0;
     list_push_back(&job_list, &job->elem);
 
-<<<<<<< HEAD
     job->jid = 0;
-=======
->>>>>>> 1bbc45d82411b1b4ca320124b3c77c1c28522383
     if (pipe->bg_job)
     {
         job->status = BACKGROUND;
@@ -517,12 +514,8 @@ static void execute(struct ast_pipeline* currpipeline) {
 
     Signal_block(SIGCHLD);
 
-<<<<<<< HEAD
     for (struct list_elem* e = list_begin(&currpipeline -> commands); e != list_end(&currpipeline -> commands);
          e = list_next(e)) {
-=======
-    for (struct list_elem* e = list_begin(&currpipe)) {
->>>>>>> 1bbc45d82411b1b4ca320124b3c77c1c28522383
 
     }
 
@@ -624,7 +617,6 @@ int main(int ac, char *av[])
                 posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
             }
             wait_for_job(new_job);
-            delete_job(new_job);
         }
 
         ast_command_line_print(cline); /* Output a representation of
