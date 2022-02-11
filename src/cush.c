@@ -160,7 +160,7 @@ add_job(struct ast_pipeline *pipe)
     job->num_processes_alive = 0;
     list_push_back(&job_list, &job->elem);
 
-    job->pid = 0;
+    job->jid = 0;
     if (pipe->bg_job)
     {
         job->status = BACKGROUND;
@@ -514,7 +514,10 @@ static void execute(struct ast_pipeline* currpipeline) {
 
     Signal_block(SIGCHLD);
 
-    for (struct list_elem* e = list_begin(&currpipe))
+    for (struct list_elem* e = list_begin(&currpipeline -> commands); e != list_end(&currpipeline -> commands);
+         e = list_next(e)) {
+
+    }
 
 
 
