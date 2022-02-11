@@ -33,6 +33,7 @@ struct ast_command {
                                 making up this command. */
     bool dup_stderr_to_stdout; /* True if stderr should be redirected as well */
     struct list_elem elem;   /* Link element to link commands in pipeline. */
+    int pid; /* the pid of the command*/
 };
 
 /* Create new command structure and initialize it */
