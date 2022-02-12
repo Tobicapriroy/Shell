@@ -112,7 +112,7 @@ static void remove_stopped_job(int jid)
 
     for (int i = 0; i < stopped_job_num; i++)
     {
-        if (!start & jid == stopped_job[i])
+        if (!start && jid == stopped_job[i])
         {
             // The job is detected
             start = true;
@@ -131,7 +131,7 @@ static void remove_stopped_job(int jid)
             // we must set it to zero.
             if (i == stopped_job_num - 1)
             {
-                stopped_job[i] == 0;
+                stopped_job[i] = 0;
             }
         }
     }
@@ -353,7 +353,6 @@ handle_child_status(pid_t pid, int status)
 
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
-
             struct ast_command *com = NULL;
             // use a for loop to iterate every process in one job
             for (struct list_elem *p = list_begin(&job->pipe->commands);
@@ -489,10 +488,10 @@ static void execute(struct ast_pipeline *currpipeline)
     int pipes[size][2];
     for (int i = 1; i < size + 1; i++)
     {
-        pipe(pipes[i]);
+        pipe2(pipes[i], O_CLOEXEC);
     }
 
-    // The input file descriptor is currently passing into
+ /*   // The input file descriptor is currently passing into
     // pipeline.
     int input_fd = -1;
     while (currpipeline->iored_input != NULL)
@@ -518,12 +517,12 @@ static void execute(struct ast_pipeline *currpipeline)
             output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT, 0750);
         }
     }
-
-    int cmdnum = 0;
-    int pid = 0;
+*/
+//    int cmdnum = 0;
+//    int pid = 0;
 
     signal_block(SIGCHLD);
-
+    int success = -1;
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
     {
@@ -537,10 +536,19 @@ static void execute(struct ast_pipeline *currpipeline)
 
         struct ast_command *command = list_entry(e, struct ast_command, elem);
 
-        posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
+        success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
+        if (success != 0) {
+            fprintf(stderr, "cush: %s: command not found\n", command->argv[0]);
+            break;
+        }
         command->pid = child;
     }
-    wait_for_job(job);
+    if (success == 0) {
+        wait_for_job(job);
+    }
+    if (job->status == FOREGROUND) {
+        delete_job(job);
+    }
 }
 
 static void getPath()
@@ -604,7 +612,8 @@ int main(int ac, char *av[])
             ast_command_line_free(cline);
             continue;
         }
-
+        ast_command_line_print(cline); /* Output a representation of
+                                          the entered command line */
         // We may focus on each pipeline
         for (struct list_elem *e = list_begin(&cline->pipes);
              e != list_end(&cline->pipes);
@@ -615,8 +624,7 @@ int main(int ac, char *av[])
             execute(pipe);
         }
 
-        ast_command_line_print(cline); /* Output a representation of
-                                          the entered command line */
+        
 
         /* Free the command line.
          * This will free the ast_pipeline objects still contained
@@ -626,7 +634,8 @@ int main(int ac, char *av[])
          * manage the lifetime of the associated ast_pipelines.
          * Otherwise, freeing here will cause use-after-free errors.
          */
-        ast_command_line_free(cline);
+        //ast_command_line_free(cline);
+        free(cline);
     }
     return 0;
 }
