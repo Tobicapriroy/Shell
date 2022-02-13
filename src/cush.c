@@ -551,6 +551,237 @@ static void execute(struct ast_pipeline *currpipeline)
     }
 }
 
+static void runPipe(struct ast_pipeline *currpipeline) {
+    struct ast_command *command = list_entry(list_begin(&currpipeline->commands), struct ast_command, elem);
+
+    char** argv = command ->argv; // the argument array
+    int argc = 0; // the number of argumnets in a command
+
+    while (*(argv + argc) != NULL) {
+        argc++;
+    }
+
+    
+    if (strcmp(*argv, "kill") == 0) {
+        // kill
+        if (argc == 2) {
+            // the job id for kill is obtained
+            int jidforKill = atoi(*(argv + 1));
+
+            // we can get the job from the corresponding id
+            struct job* killJob = get_job_from_jid(jidforKill);
+
+            if (killJob == NULL) {
+                // If the job was not found, we will return the statement below.
+                printf("jid: %d was not found among the current job\n", jidforKill);
+            }
+            else {
+                // If the job was found, a signal can be set.
+                int status = killpg(command->pid, SIGTERM);
+
+                if (status != 0) {
+                    // If the status succeeds, we can remove it from the list.
+                    list_remove(&killJob->elem);
+
+                }
+                if (status < 0) {
+                    // The signal is failed.
+                    printf("Kill on job: %d was unsuccessful\n", jidforKill);
+                }
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for the command 'kill'\n");
+        }
+    }
+    else if (strcmp(*argv, "fg") == 0) {
+        //fg
+
+        struct job* fgJob = NULL; // the job for fg
+        int jidforFg = 0; // the job id for fg
+
+        if (argc == 1) {
+            // The argument just contains fg
+            if (stopped_job_num > 0) {
+                // If there is at least one stopped job, we will
+                // need to retrieve it.
+                fgJob = get_job_from_jid(stopped_job[stopped_job_num - 1]);
+                jidforFg = fgJob -> jid;
+            }
+            else {
+                printf("There are currently no stopped jobs\n");
+                return;
+            }
+        }
+        else if (argc == 2) {
+            jidforFg = atoi(*(argv + 1));
+            fgJob = get_job_from_jid(jidforFg);
+            
+            if (fgJob == NULL) {
+                printf("No job matching jid\n");
+                return;
+            }
+            if (fgJob -> status == FOREGROUND) {
+                printf("Job: %d is already running\n", jidforFg);
+                return;
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for command 'fg'\n");
+            return;
+        }
+
+
+        if (fgJob == NULL) {
+            // The job was not found.
+            // An error is thrown
+            printf("There were no stopped job found\n");
+            return;
+        }
+        else {
+           // The job was not found.
+           signal_block(SIGCHLD);
+           int status = killpg(command->pid, SIGCONT); // the signal we are available to use in the command fg
+                                                       // is SIGCONT
+
+           if (status >= 0) {
+                remove_stopped_job(fgJob -> jid); 
+                termstate_give_terminal_to(&fgJob->saved_tty_state, command->pid);
+                fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
+                print_job(fgJob); // print the job
+                wait_for_job(fgJob); // wait for the job to complete other processes
+           }
+           else {
+               print("fg on job: %d was unsuccessful\n", jidforFg);
+           }
+           signal_unblock(SIGCHLD);
+           termstate_give_terminal_back_to_shell();
+        }
+    }
+    else if (strcmp(*argv, "bg") == 0) {
+        //bg
+
+        struct job *bgJob = NULL; // bgJob must be initialized
+        int jidforBg = 0; // the job id for the command bg
+
+        if (argc == 1) {
+            // If there is only one argument, we will need to determine
+            // their stopped jobs.
+            if (stopped_job_num > 0) {
+                bgJob = get_job_from_jid(stopped_job[stopped_job_num - 1]);
+                jidforBg = bgJob -> jid;
+            }
+            else {
+                printf("There are currently no stopped jobs\n");
+                return;
+            }
+        }
+        else if (argc == 2) {
+            jidforBg = atoi(*(argv + 1));
+            bgJob = get_job_from_jid(jidforBg);
+
+            if (bgJob == NULL) {
+                printf("No job matching jid\n");
+                return;
+            }
+            else if (bgJob->status != STOPPED) {
+                printf("Job: %d is already running\n", jidforBg);
+                return;
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for command 'bg'\n");
+            return;
+        }
+
+        if (bgJob == NULL) {
+            // The job was not found.
+            // Therefore, we have to throw the error.
+            printf("There were no stopped jobs.\n");
+            return;
+        }
+        else {
+            int status = killpg(command -> pid, SIGCONT); // Similar to what we 
+                                                          // have done before,
+                                                        // the signal should
+                                                        // be set to SIGCONT;
+            if (status >= 0) {
+                // The signal is valid.
+                remove_stopped_job(bgJob->jid); // remove the job id 
+                bgJob -> status = BACKGROUND; // It enters the background stage.
+                print(bgJob);
+            }
+            else {
+                printf("bg on job: %d was unsuccessful\n", jidforBg);
+            }
+            termstate_give_terminal_back_to_shell();
+        }
+    }
+    else if (strcmp(*argv, "jobs") == 0) {
+        // jobs
+
+
+        if (argc == 1) {
+
+            if (!list_empty(&job_list)) {
+                  for (struct list_elem *e = list_begin(&job_list);
+                       e != list_end(&job_list); e = list_next(e)) {
+                      // We basically use a for loop to keep track of each job in the
+                      // job list.
+                      struct job* currJob = list_entry(e, struct job, elem);
+                      print_job(currJob); 
+                    }
+            }
+            else {
+                printf("There are currently no jobs\n");
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for command 'jobs'\n");
+        }
+    }
+    else if (strcmp(*argv, "stop") == 0) {
+        //stop
+
+        if (argc == 2) {
+            // It is similar to kill command above
+
+            int jidforStop = atoi(*(argv + 1)); // We may get the corresponding
+                                                // jid for the stop command
+            struct job* jobforStop = get_job_from_jid(jidforStop); // the job is
+                                                                   // obtained.
+
+            if (jobforStop == NULL) {
+                 printf("jid: %d was not found among the current jobs\n", jidforStop);
+            }
+            else {
+                int status = killpg(command -> pid, SIGSTOP); // The signal can be 
+                                                              // set as stop
+                if (status != 0) {
+                    jobforStop->status = STOPPED; // The status should
+                                                  // be regarded as stop
+                    termstate_save(&jobforStop->saved_tty_state); // the state of 
+                                                                  // terminal is saved.
+                }
+                else {
+                    printf("Stop on job: %d was unsuccessful\n");
+                }
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for command 'stop'\n");
+        }
+    }
+    else if (strcmp(*argv, "exit") == 0) {
+        // exit
+         exit(0);
+    }
+    else {
+        // We execute other commands besides illustrated above.
+        execute(currpipeline);
+    }
+}
+
 static void getPath()
 {
     int size = 200;
