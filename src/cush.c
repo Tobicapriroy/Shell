@@ -29,6 +29,8 @@ static void handle_child_status(pid_t pid, int status);
 
 extern char **environ;
 
+//static char* custom_prompt = "\\! \\u@\\h in \\W";
+
 static void
 usage(char *progname)
 {
@@ -41,9 +43,92 @@ usage(char *progname)
 
 /* Build a prompt */
 static char *
-build_prompt(void)
+build_prompt(int *command)
 {
-    return strdup("> ");
+    /* *command = *command + 1; // the address of the command increases by 1.
+    int length = strlen(custom_prompt); // The length of the command prompt
+    char curr_ch = *custom_prompt; // the character chosen in custom_prompt
+    time_t tm = time(NULL); // The time in the prompt
+    bool special = false; // to determine whether or not the symbol is a special character
+    int count = 0; // We would like to count the number of characters in custom_prompt
+
+    // We may start at the beginning of the prompt to focus on the process
+    while (count < length) {
+
+         if (special) {
+               
+              // If we encounter the special character, we will
+              // need to analyze it elaborately.
+              switch(curr_ch) {
+                  
+                  // user                   
+                  case 'u':
+                     printf("%s", getenv("USER"));
+                     break;
+
+                  // host
+                  case 'h':;
+                     char host_name[33];
+                     gethostname(host_name, 32);
+                     host_name[32] = '\0';
+                     printf("%s", host_name);     
+                     break;
+
+                 // the entire working directory
+                 case 'w':
+                     printf("%s", getenv("PWD"));
+                     break;
+
+                 // the current working directory
+                 case 'W':
+                     printf("%s", basename(getenv("PWD")));
+                     break;
+
+                 //date
+                 case 'd':;
+                     struct tm tmDate = *localtime(&tm);
+                     printf("%02d-%02d-%d", tmDate.tm_mon + 1, tmDate.tm_mday, tmDate.tm_year + 1990);
+                     break;
+
+                 // time
+                 case 'T':;
+                     struct tm tmTime = *localtime(&tm);
+                     printf("%02d:%02d", tmTime.tm_hour, tmTime.tm_min);
+                     break;
+
+                 // a new line character
+                 case 'n':
+                     printf("\n");
+                     break;
+
+                 // a cush
+                 case 'c':
+                     printf("cush");
+                     break;
+
+                 // a slash
+                 case '!':
+                     printf("%d", *command);
+                     break;
+
+                 // The default version is to print the character with "\\"
+                 default:
+                    printf("\\");
+                    printf("%c", curr_ch);
+                    break;
+                 }
+            special = false;
+         }
+         else if (curr_ch == '\\') {
+             special = true;
+         }
+         else {
+             printf("%c", curr_ch);
+         }
+         count++; // the number of times the character appears increases.
+        curr_ch = *(custom_prompt + count); // we may move to the next character.
+    } */
+     return strdup("cush> ");
 }
 
 enum job_status
@@ -808,14 +893,16 @@ int main(int ac, char *av[])
     signal_set_handler(SIGCHLD, sigchld_handler);
     termstate_init();
 
+    int num_com = 0;
+
     /* Read/eval loop. */
     for (;;)
     {
 
         /* Do not output a prompt unless shell's stdin is a terminal */
 
-        getPath();
-        char *prompt = isatty(0) ? build_prompt() : NULL;
+        //getPath();
+        char *prompt = isatty(0) ? build_prompt(&num_com) : NULL;
         char *cmdline = readline(prompt);
         free(prompt);
 
@@ -839,8 +926,8 @@ int main(int ac, char *av[])
             ast_command_line_free(cline);
             continue;
         }
-        ast_command_line_print(cline); /* Output a representation of
-                                          the entered command line */
+        //ast_command_line_print(cline); /* Output a representation of
+                                          /* the entered command line */
         // We may focus on each pipeline
         for (struct list_elem *e = list_begin(&cline->pipes);
              e != list_end(&cline->pipes);
