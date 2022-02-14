@@ -558,7 +558,6 @@ static void runPipe(struct ast_pipeline *currpipeline) {
         argc++;
     }
 
-    
     if (strcmp(*argv, "kill") == 0) {
         // kill
         if (argc == 2) {
