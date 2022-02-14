@@ -111,7 +111,7 @@ static void remove_stopped_job(int jid) {
 
     
     for (int i = 0; i < stopped_job_num; i++) {
-        if (!start & jid == stopped_job[i]) {
+        if (!start & (jid == stopped_job[i])) {
            // The job is detected
             start = true;
         }
@@ -126,8 +126,8 @@ static void remove_stopped_job(int jid) {
 
             // If this is the last position in the job array,
             // we must set it to zero.
-            if (i == stopped_job_num - 1) {
-                stopped_job[i] == 0;
+            else if (i == stopped_job_num - 1) {
+                stopped_job[i] = 0;
             }
         }
     }
@@ -648,7 +648,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
                 wait_for_job(fgJob); // wait for the job to complete other processes
            }
            else {
-               print("fg on job: %d was unsuccessful\n", jidforFg);
+               printf("fg on job: %d was unsuccessful\n", jidforFg);
            }
            signal_unblock(SIGCHLD);
            termstate_give_terminal_back_to_shell();
@@ -705,7 +705,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
                 // The signal is valid.
                 remove_stopped_job(bgJob->jid); // remove the job id 
                 bgJob -> status = BACKGROUND; // It enters the background stage.
-                print(bgJob);
+                print_job(bgJob);
             }
             else {
                 printf("bg on job: %d was unsuccessful\n", jidforBg);
@@ -760,7 +760,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
                                                                   // terminal is saved.
                 }
                 else {
-                    printf("Stop on job: %d was unsuccessful\n");
+                    printf("Stop on job: %d was unsuccessful\n", jidforStop);
                 }
             }
         }
