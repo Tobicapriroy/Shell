@@ -29,7 +29,7 @@ static void handle_child_status(pid_t pid, int status);
 
 extern char **environ;
 
-//static char* custom_prompt = "\\! \\u@\\h in \\W";
+static char* custom_prompt = "\\! \\u@\\h in \\W";
 
 static void
 usage(char *progname)
@@ -45,7 +45,7 @@ usage(char *progname)
 static char *
 build_prompt(int *command)
 {
-    /* *command = *command + 1; // the address of the command increases by 1.
+    *command = *command + 1; // the address of the command increases by 1.
     int length = strlen(custom_prompt); // The length of the command prompt
     char curr_ch = *custom_prompt; // the character chosen in custom_prompt
     time_t tm = time(NULL); // The time in the prompt
@@ -127,8 +127,8 @@ build_prompt(int *command)
          }
          count++; // the number of times the character appears increases.
         curr_ch = *(custom_prompt + count); // we may move to the next character.
-    } */
-     return strdup("cush> ");
+    }
+     return strdup("> ");
 }
 
 enum job_status
