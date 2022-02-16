@@ -27,9 +27,11 @@
 
 static void handle_child_status(pid_t pid, int status);
 
+static int runBuiltIn(struct ast_pipeline *currpipeline);
+
 extern char **environ;
 
-static char* custom_prompt = "\\! \\u@\\h in \\W";
+static char* custom_prompt = "\\! cush in \\W";
 
 static void
 usage(char *progname)
@@ -605,9 +607,13 @@ static void execute(struct ast_pipeline *currpipeline)
 
     signal_block(SIGCHLD);
     int success = -1;
+    if (runBuiltIn(currpipeline)) {
+        return;
+    }
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
     {
+        
         job->num_processes_alive++;
         pid_t child; // a child is established.
         posix_spawn_file_actions_t file_actions;
@@ -615,6 +621,9 @@ static void execute(struct ast_pipeline *currpipeline)
 
         posix_spawnattr_t attr;
         posix_spawnattr_init(&attr);
+        posix_spawnattr_setflags(&attr, POSIX_SPAWN_TCSETPGROUP | POSIX_SPAWN_SETPGROUP);
+        posix_spawnattr_tcsetpgrp_np(&attr, termstate_get_tty_fd());
+        posix_spawnattr_setpgroup(&attr, 0);
 
         struct ast_command *command = list_entry(e, struct ast_command, elem);
 
@@ -633,11 +642,11 @@ static void execute(struct ast_pipeline *currpipeline)
     }
 }
 
-static void runPipe(struct ast_pipeline *currpipeline) {
+static int runBuiltIn(struct ast_pipeline *currpipeline) {
     struct ast_command *command = list_entry(list_begin(&currpipeline->commands), struct ast_command, elem);
 
-    char** argv = command ->argv; // the argument array
-    int argc = 0; // the number of argumnets in a command
+    char** argv = command->argv; // the argument array
+    int argc = 0; // the number of arguments in a command
 
     while (*(argv + argc) != NULL) {
         argc++;
@@ -674,6 +683,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
         else {
             printf("Incorrect number of arguments for the command 'kill'\n");
         }
+        return 1;
     }
     else if (strcmp(*argv, "fg") == 0) {
         //fg
@@ -691,7 +701,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
             }
             else {
                 printf("There are currently no stopped jobs\n");
-                return;
+                return 1;
             }
         }
         else if (argc == 2) {
@@ -700,16 +710,16 @@ static void runPipe(struct ast_pipeline *currpipeline) {
             
             if (fgJob == NULL) {
                 printf("No job matching jid\n");
-                return;
+                return 1;
             }
             if (fgJob -> status == FOREGROUND) {
                 printf("Job: %d is already running\n", jidforFg);
-                return;
+                return 1;
             }
         }
         else {
             printf("Incorrect number of arguments for command 'fg'\n");
-            return;
+            return 1;
         }
 
 
@@ -717,7 +727,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
             // The job was not found.
             // An error is thrown
             printf("There were no stopped job found\n");
-            return;
+            return 1;
         }
         else {
            // The job was not found.
@@ -738,6 +748,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
            signal_unblock(SIGCHLD);
            termstate_give_terminal_back_to_shell();
         }
+        return 1;
     }
     else if (strcmp(*argv, "bg") == 0) {
         //bg
@@ -754,7 +765,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
             }
             else {
                 printf("There are currently no stopped jobs\n");
-                return;
+                return 1;
             }
         }
         else if (argc == 2) {
@@ -763,23 +774,23 @@ static void runPipe(struct ast_pipeline *currpipeline) {
 
             if (bgJob == NULL) {
                 printf("No job matching jid\n");
-                return;
+                return 1;
             }
             else if (bgJob->status != STOPPED) {
                 printf("Job: %d is already running\n", jidforBg);
-                return;
+                return 1;
             }
         }
         else {
             printf("Incorrect number of arguments for command 'bg'\n");
-            return;
+            return 1;
         }
 
         if (bgJob == NULL) {
             // The job was not found.
             // Therefore, we have to throw the error.
             printf("There were no stopped jobs.\n");
-            return;
+            return 1;
         }
         else {
             int status = killpg(command -> pid, SIGCONT); // Similar to what we 
@@ -797,6 +808,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
             }
             termstate_give_terminal_back_to_shell();
         }
+        return 1;
     }
     else if (strcmp(*argv, "jobs") == 0) {
         // jobs
@@ -820,6 +832,7 @@ static void runPipe(struct ast_pipeline *currpipeline) {
         else {
             printf("Incorrect number of arguments for command 'jobs'\n");
         }
+        return 1;
     }
     else if (strcmp(*argv, "stop") == 0) {
         //stop
@@ -852,15 +865,13 @@ static void runPipe(struct ast_pipeline *currpipeline) {
         else {
             printf("Incorrect number of arguments for command 'stop'\n");
         }
+        return 1;
     }
     else if (strcmp(*argv, "exit") == 0) {
         // exit
          exit(0);
     }
-    else {
-        // We execute other commands besides illustrated above.
-        execute(currpipeline);
-    }
+    return 0;
 }
 
 static void getPath()
