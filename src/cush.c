@@ -652,7 +652,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         argc++;
     }
 
-    if (strcmp(*argv, "kill") == 0) {
+    if (strcmp(argv[0], "kill") == 0) {
         // kill
         if (argc == 2) {
             // the job id for kill is obtained
@@ -685,7 +685,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         }
         return 1;
     }
-    else if (strcmp(*argv, "fg") == 0) {
+    else if (strcmp(argv[0], "fg") == 0) {
         //fg
 
         struct job* fgJob = NULL; // the job for fg
@@ -750,7 +750,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         }
         return 1;
     }
-    else if (strcmp(*argv, "bg") == 0) {
+    else if (strcmp(argv[0], "bg") == 0) {
         //bg
 
         struct job *bgJob = NULL; // bgJob must be initialized
@@ -810,7 +810,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         }
         return 1;
     }
-    else if (strcmp(*argv, "jobs") == 0) {
+    else if (strcmp(argv[0], "jobs") == 0) {
         // jobs
 
 
@@ -834,7 +834,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         }
         return 1;
     }
-    else if (strcmp(*argv, "stop") == 0) {
+    else if (strcmp(argv[0], "stop") == 0) {
         //stop
 
         if (argc == 2) {
@@ -867,7 +867,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline) {
         }
         return 1;
     }
-    else if (strcmp(*argv, "exit") == 0) {
+    else if (strcmp(argv[0], "exit") == 0) {
         // exit
          exit(0);
     }
