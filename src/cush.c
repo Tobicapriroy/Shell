@@ -31,7 +31,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline);
 
 extern char **environ;
 
-static char* custom_prompt = "\\! cush in \\W";
+static char *custom_prompt = "\\! cush in \\W";
 
 static void
 usage(char *progname)
@@ -47,90 +47,95 @@ usage(char *progname)
 static char *
 build_prompt(int *command)
 {
-    *command = *command + 1; // the address of the command increases by 1.
+    *command = *command + 1;            // the address of the command increases by 1.
     int length = strlen(custom_prompt); // The length of the command prompt
-    char curr_ch = *custom_prompt; // the character chosen in custom_prompt
-    time_t tm = time(NULL); // The time in the prompt
-    bool special = false; // to determine whether or not the symbol is a special character
-    int count = 0; // We would like to count the number of characters in custom_prompt
+    char curr_ch = *custom_prompt;      // the character chosen in custom_prompt
+    time_t tm = time(NULL);             // The time in the prompt
+    bool special = false;               // to determine whether or not the symbol is a special character
+    int count = 0;                      // We would like to count the number of characters in custom_prompt
 
     // We may start at the beginning of the prompt to focus on the process
-    while (count < length) {
+    while (count < length)
+    {
 
-         if (special) {
-               
-              // If we encounter the special character, we will
-              // need to analyze it elaborately.
-              switch(curr_ch) {
-                  
-                  // user                   
-                  case 'u':
-                     printf("%s", getenv("USER"));
-                     break;
+        if (special)
+        {
 
-                  // host
-                  case 'h':;
-                     char host_name[33];
-                     gethostname(host_name, 32);
-                     host_name[32] = '\0';
-                     printf("%s", host_name);     
-                     break;
+            // If we encounter the special character, we will
+            // need to analyze it elaborately.
+            switch (curr_ch)
+            {
 
-                 // the entire working directory
-                 case 'w':
-                     printf("%s", getenv("PWD"));
-                     break;
+            // user
+            case 'u':
+                printf("%s", getenv("USER"));
+                break;
 
-                 // the current working directory
-                 case 'W':
-                     printf("%s", basename(getenv("PWD")));
-                     break;
+            // host
+            case 'h':;
+                char host_name[33];
+                gethostname(host_name, 32);
+                host_name[32] = '\0';
+                printf("%s", host_name);
+                break;
 
-                 //date
-                 case 'd':;
-                     struct tm tmDate = *localtime(&tm);
-                     printf("%02d-%02d-%d", tmDate.tm_mon + 1, tmDate.tm_mday, tmDate.tm_year + 1990);
-                     break;
+            // the entire working directory
+            case 'w':
+                printf("%s", getenv("PWD"));
+                break;
 
-                 // time
-                 case 'T':;
-                     struct tm tmTime = *localtime(&tm);
-                     printf("%02d:%02d", tmTime.tm_hour, tmTime.tm_min);
-                     break;
+            // the current working directory
+            case 'W':
+                printf("%s", basename(getenv("PWD")));
+                break;
 
-                 // a new line character
-                 case 'n':
-                     printf("\n");
-                     break;
+            // date
+            case 'd':;
+                struct tm tmDate = *localtime(&tm);
+                printf("%02d-%02d-%d", tmDate.tm_mon + 1, tmDate.tm_mday, tmDate.tm_year + 1990);
+                break;
 
-                 // a cush
-                 case 'c':
-                     printf("cush");
-                     break;
+            // time
+            case 'T':;
+                struct tm tmTime = *localtime(&tm);
+                printf("%02d:%02d", tmTime.tm_hour, tmTime.tm_min);
+                break;
 
-                 // a slash
-                 case '!':
-                     printf("%d", *command);
-                     break;
+            // a new line character
+            case 'n':
+                printf("\n");
+                break;
 
-                 // The default version is to print the character with "\\"
-                 default:
-                    printf("\\");
-                    printf("%c", curr_ch);
-                    break;
-                 }
+            // a cush
+            case 'c':
+                printf("cush");
+                break;
+
+            // a slash
+            case '!':
+                printf("%d", *command);
+                break;
+
+            // The default version is to print the character with "\\"
+            default:
+                printf("\\");
+                printf("%c", curr_ch);
+                break;
+            }
             special = false;
-         }
-         else if (curr_ch == '\\') {
-             special = true;
-         }
-         else {
-             printf("%c", curr_ch);
-         }
-         count++; // the number of times the character appears increases.
+        }
+        else if (curr_ch == '\\')
+        {
+            special = true;
+        }
+        else
+        {
+            printf("%c", curr_ch);
+        }
+        count++;                            // the number of times the character appears increases.
         curr_ch = *(custom_prompt + count); // we may move to the next character.
     }
-     return strdup("> ");
+    return strdup("> ");
 }
 
 enum job_status
@@ -176,7 +181,7 @@ static int stopped_job[MAXJOBS];
 static int stopped_job_num = 0;
 
 /*
- *  
+ *
  * add the stopped job to the stopped job
  * array
  */
@@ -191,41 +196,44 @@ static void added_stopped_job(int jid)
  * job array
  *
  */
-static void remove_stopped_job(int jid) {
+static void remove_stopped_job(int jid)
+{
     bool start = false; // I can use a variable named
                         // start of boolean type to
                         // resolve the problem.
 
-    
-    for (int i = 0; i < stopped_job_num; i++) {
-        if (!start & (jid == stopped_job[i])) {
-           // The job is detected
+    for (int i = 0; i < stopped_job_num; i++)
+    {
+        if (!start & (jid == stopped_job[i]))
+        {
+            // The job is detected
             start = true;
         }
 
-
-        if (start) {
+        if (start)
+        {
             // the position of the job that is not last
-            if (i < stopped_job_num - 1) {
+            if (i < stopped_job_num - 1)
+            {
                 // We need to move to the next position
-                 stopped_job[i] = stopped_job[i + 1];
+                stopped_job[i] = stopped_job[i + 1];
             }
 
             // If this is the last position in the job array,
             // we must set it to zero.
-            else if (i == stopped_job_num - 1) {
+            else if (i == stopped_job_num - 1)
+            {
                 stopped_job[i] = 0;
             }
         }
     }
 
-    
-    if (start) {
-        // reduce the number of jobs in the job array after 
+    if (start)
+    {
+        // reduce the number of jobs in the job array after
         // the execution of the array
-        stopped_job_num --;
-    }            
-
+        stopped_job_num--;
+    }
 }
 
 /* Return job corresponding to jid */
@@ -382,7 +390,7 @@ static void
 wait_for_job(struct job *job)
 {
     assert(signal_is_blocked(SIGCHLD));
-    
+
     while (job->status == FOREGROUND && job->num_processes_alive > 0)
     {
         int status;
@@ -427,7 +435,7 @@ handle_child_status(pid_t pid, int status)
 
         // We can take advantage of methods in list.h to solve
         // the problem efficiently.
-        
+
         int found = -1; // the initial value of job pid.
 
         for (struct list_elem *e = list_begin(&job_list);
@@ -437,25 +445,27 @@ handle_child_status(pid_t pid, int status)
 
             // We can access the element with respect to list_entry
             job = list_entry(e, struct job, elem);
-            
+
             struct ast_command *com = NULL;
-            // use a for loop to iterate every process in one job 
+            // use a for loop to iterate every process in one job
             for (struct list_elem *p = list_begin(&job->pipe->commands);
-                 p != list_end(&job->pipe->commands); p = list_next(p)) {
+                 p != list_end(&job->pipe->commands); p = list_next(p))
+            {
 
-                     com = list_entry(p, struct ast_command, elem);
-                     // If their pid correspond to one another, we may break
-                    // the for loop and use the current job.
+                com = list_entry(p, struct ast_command, elem);
+                // If their pid correspond to one another, we may break
+                // the for loop and use the current job.
 
-                     if (com->pid == pid)
-                     {
-                          found = job -> jid;
-                          break;
-                    }
+                if (com->pid == pid)
+                {
+                    found = job->jid;
+                    break;
+                }
             }
 
-            if (found != -1) {
-               break;    
+            if (found != -1)
+            {
+                break;
             }
 
             // Otherwise, we want to set job into NULL.
@@ -559,7 +569,6 @@ handle_child_status(pid_t pid, int status)
     }
 }
 
-
 static void execute(struct ast_pipeline *currpipeline)
 {
 
@@ -575,45 +584,46 @@ static void execute(struct ast_pipeline *currpipeline)
         pipe2(pipes[i], O_CLOEXEC);
     }
 
- /*   // The input file descriptor is currently passing into
-    // pipeline.
-    int input_fd = -1;
-    while (currpipeline->iored_input != NULL)
-    {
-        // read the input file descriptor
-        input_fd = open(currpipeline->iored_input, O_RDONLY);
-    }
+    /*   // The input file descriptor is currently passing into
+       // pipeline.
+       int input_fd = -1;
+       while (currpipeline->iored_input != NULL)
+       {
+           // read the input file descriptor
+           input_fd = open(currpipeline->iored_input, O_RDONLY);
+       }
 
-    // The output file descriptor is currently passing into
-    // the pipeline.
-    int output_fd = -1;
-    while (currpipeline->iored_output != NULL)
-    {
+       // The output file descriptor is currently passing into
+       // the pipeline.
+       int output_fd = -1;
+       while (currpipeline->iored_output != NULL)
+       {
 
-        if (currpipeline->append_to_output)
-        {
-            // the file descriptor can be written if appended successfully.
-            output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT | O_APPEND, 0750);
-        }
-        else
-        {
-            // the file descriptor can be written if it is failed to append.
-            output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT, 0750);
-        }
-    }
-*/
-//    int cmdnum = 0;
-//    int pid = 0;
+           if (currpipeline->append_to_output)
+           {
+               // the file descriptor can be written if appended successfully.
+               output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT | O_APPEND, 0750);
+           }
+           else
+           {
+               // the file descriptor can be written if it is failed to append.
+               output_fd = open(currpipeline->iored_output, O_WRONLY | O_CREAT, 0750);
+           }
+       }
+   */
+    //    int cmdnum = 0;
+    //    int pid = 0;
 
     signal_block(SIGCHLD);
     int success = -1;
-    if (runBuiltIn(currpipeline)) {
+    if (runBuiltIn(currpipeline))
+    {
         return;
     }
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
     {
-        
+
         job->num_processes_alive++;
         pid_t child; // a child is established.
         posix_spawn_file_actions_t file_actions;
@@ -628,248 +638,269 @@ static void execute(struct ast_pipeline *currpipeline)
         struct ast_command *command = list_entry(e, struct ast_command, elem);
 
         success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
-        if (success != 0) {
+        if (success != 0)
+        {
             fprintf(stderr, "cush: %s: command not found\n", command->argv[0]);
             break;
         }
         command->pid = child;
     }
-    if (success == 0) {
+    if (success == 0)
+    {
         wait_for_job(job);
     }
-    if (job->status == FOREGROUND) {
+    if (job->status == FOREGROUND)
+    {
         delete_job(job);
     }
 }
 
-static int runBuiltIn(struct ast_pipeline *currpipeline) {
+static int runBuiltIn(struct ast_pipeline *currpipeline)
+{
     struct ast_command *command = list_entry(list_begin(&currpipeline->commands), struct ast_command, elem);
 
-    char** argv = command->argv; // the argument array
-    int argc = 0; // the number of arguments in a command
+    char **argv = command->argv; // the argument array
+    int argc = 0;                // the number of arguments in a command
 
-    while (*(argv + argc) != NULL) {
+    while (*(argv + argc) != NULL)
+    {
         argc++;
     }
 
-    if (strcmp(argv[0], "kill") == 0) {
+    if (strcmp(argv[0], "kill") == 0)
+    {
         // kill
-        if (argc == 2) {
+        if (argc == 2)
+        {
             // the job id for kill is obtained
             int jidforKill = atoi(*(argv + 1));
 
             // we can get the job from the corresponding id
-            struct job* killJob = get_job_from_jid(jidforKill);
+            struct job *killJob = get_job_from_jid(jidforKill);
 
-            if (killJob == NULL) {
+            if (killJob == NULL)
+            {
                 // If the job was not found, we will return the statement below.
                 printf("jid: %d was not found among the current job\n", jidforKill);
             }
-            else {
+            else
+            {
                 // If the job was found, a signal can be set.
                 int status = killpg(command->pid, SIGTERM);
 
-                if (status != 0) {
+                if (status != 0)
+                {
                     // If the status succeeds, we can remove it from the list.
                     list_remove(&killJob->elem);
-
                 }
-                if (status < 0) {
+                if (status < 0)
+                {
                     // The signal is failed.
                     printf("Kill on job: %d was unsuccessful\n", jidforKill);
                 }
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for the command 'kill'\n");
         }
         return 1;
     }
-    else if (strcmp(argv[0], "fg") == 0) {
-        //fg
+    else if (strcmp(argv[0], "fg") == 0)
+    {
+        // fg
 
-        struct job* fgJob = NULL; // the job for fg
-        int jidforFg = 0; // the job id for fg
+        struct job *fgJob = NULL; // the job for fg
+        int jidforFg = 0;         // the job id for fg
 
-        if (argc == 1) {
-            // The argument just contains fg
-            if (stopped_job_num > 0) {
-                // If there is at least one stopped job, we will
-                // need to retrieve it.
-                fgJob = get_job_from_jid(stopped_job[stopped_job_num - 1]);
-                jidforFg = fgJob -> jid;
-            }
-            else {
-                printf("There are currently no stopped jobs\n");
-                return 1;
-            }
+        if (argc == 1)
+        {
+            printf("fg: job id missing\n");
         }
-        else if (argc == 2) {
-            jidforFg = atoi(*(argv + 1));
+        else
+        {
+            jidforFg = atoi(argv[1]);
             fgJob = get_job_from_jid(jidforFg);
-            
-            if (fgJob == NULL) {
-                printf("No job matching jid\n");
+
+            if (fgJob == NULL)
+            {
+                printf("fg: %d: No such job\n", jidforFg);
                 return 1;
             }
-            if (fgJob -> status == FOREGROUND) {
+            if (fgJob->status == FOREGROUND)
+            {
                 printf("Job: %d is already running\n", jidforFg);
                 return 1;
             }
         }
-        else {
-            printf("Incorrect number of arguments for command 'fg'\n");
-            return 1;
-        }
 
+        // The job was found.
+        signal_block(SIGCHLD);
+        int status = killpg(command->pid, SIGCONT); // the signal we are available to use in the command fg
+                                                    // is SIGCONT
 
-        if (fgJob == NULL) {
-            // The job was not found.
-            // An error is thrown
-            printf("There were no stopped job found\n");
-            return 1;
+        if (status >= 0)
+        {
+            remove_stopped_job(fgJob->jid);
+            termstate_give_terminal_to(&fgJob->saved_tty_state, command->pid);
+            fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
+            print_job(fgJob);           // print the job
+            wait_for_job(fgJob);        // wait for the job to complete other processes
         }
-        else {
-           // The job was not found.
-           signal_block(SIGCHLD);
-           int status = killpg(command->pid, SIGCONT); // the signal we are available to use in the command fg
-                                                       // is SIGCONT
+        else
+        {
+            printf("fg on job: %d was unsuccessful\n", jidforFg);
+        }
+        signal_unblock(SIGCHLD);
+        termstate_give_terminal_back_to_shell();
 
-           if (status >= 0) {
-                remove_stopped_job(fgJob -> jid); 
-                termstate_give_terminal_to(&fgJob->saved_tty_state, command->pid);
-                fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
-                print_job(fgJob); // print the job
-                wait_for_job(fgJob); // wait for the job to complete other processes
-           }
-           else {
-               printf("fg on job: %d was unsuccessful\n", jidforFg);
-           }
-           signal_unblock(SIGCHLD);
-           termstate_give_terminal_back_to_shell();
-        }
         return 1;
     }
-    else if (strcmp(argv[0], "bg") == 0) {
-        //bg
+    else if (strcmp(argv[0], "bg") == 0)
+    {
+        // bg
 
         struct job *bgJob = NULL; // bgJob must be initialized
-        int jidforBg = 0; // the job id for the command bg
+        int jidforBg = 0;         // the job id for the command bg
 
-        if (argc == 1) {
+        if (argc == 1)
+        {
             // If there is only one argument, we will need to determine
             // their stopped jobs.
-            if (stopped_job_num > 0) {
+            if (stopped_job_num > 0)
+            {
                 bgJob = get_job_from_jid(stopped_job[stopped_job_num - 1]);
-                jidforBg = bgJob -> jid;
+                jidforBg = bgJob->jid;
             }
-            else {
+            else
+            {
                 printf("There are currently no stopped jobs\n");
                 return 1;
             }
         }
-        else if (argc == 2) {
+        else if (argc == 2)
+        {
             jidforBg = atoi(*(argv + 1));
             bgJob = get_job_from_jid(jidforBg);
 
-            if (bgJob == NULL) {
+            if (bgJob == NULL)
+            {
                 printf("No job matching jid\n");
                 return 1;
             }
-            else if (bgJob->status != STOPPED) {
+            else if (bgJob->status != STOPPED)
+            {
                 printf("Job: %d is already running\n", jidforBg);
                 return 1;
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for command 'bg'\n");
             return 1;
         }
 
-        if (bgJob == NULL) {
+        if (bgJob == NULL)
+        {
             // The job was not found.
             // Therefore, we have to throw the error.
             printf("There were no stopped jobs.\n");
             return 1;
         }
-        else {
-            int status = killpg(command -> pid, SIGCONT); // Similar to what we 
-                                                          // have done before,
+        else
+        {
+            int status = killpg(command->pid, SIGCONT); // Similar to what we
+                                                        // have done before,
                                                         // the signal should
                                                         // be set to SIGCONT;
-            if (status >= 0) {
+            if (status >= 0)
+            {
                 // The signal is valid.
-                remove_stopped_job(bgJob->jid); // remove the job id 
-                bgJob -> status = BACKGROUND; // It enters the background stage.
+                remove_stopped_job(bgJob->jid); // remove the job id
+                bgJob->status = BACKGROUND;     // It enters the background stage.
                 print_job(bgJob);
             }
-            else {
+            else
+            {
                 printf("bg on job: %d was unsuccessful\n", jidforBg);
             }
             termstate_give_terminal_back_to_shell();
         }
         return 1;
     }
-    else if (strcmp(argv[0], "jobs") == 0) {
+    else if (strcmp(argv[0], "jobs") == 0)
+    {
         // jobs
 
+        if (argc == 1)
+        {
 
-        if (argc == 1) {
-
-            if (!list_empty(&job_list)) {
-                  for (struct list_elem *e = list_begin(&job_list);
-                       e != list_end(&job_list); e = list_next(e)) {
-                      // We basically use a for loop to keep track of each job in the
-                      // job list.
-                      struct job* currJob = list_entry(e, struct job, elem);
-                      print_job(currJob); 
-                    }
+            if (!list_empty(&job_list))
+            {
+                for (struct list_elem *e = list_begin(&job_list);
+                     e != list_end(&job_list); e = list_next(e))
+                {
+                    // We basically use a for loop to keep track of each job in the
+                    // job list.
+                    struct job *currJob = list_entry(e, struct job, elem);
+                    print_job(currJob);
+                }
             }
-            else {
+            else
+            {
                 printf("There are currently no jobs\n");
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for command 'jobs'\n");
         }
         return 1;
     }
-    else if (strcmp(argv[0], "stop") == 0) {
-        //stop
+    else if (strcmp(argv[0], "stop") == 0)
+    {
+        // stop
 
-        if (argc == 2) {
+        if (argc == 2)
+        {
             // It is similar to kill command above
 
-            int jidforStop = atoi(*(argv + 1)); // We may get the corresponding
-                                                // jid for the stop command
-            struct job* jobforStop = get_job_from_jid(jidforStop); // the job is
+            int jidforStop = atoi(*(argv + 1));                    // We may get the corresponding
+                                                                   // jid for the stop command
+            struct job *jobforStop = get_job_from_jid(jidforStop); // the job is
                                                                    // obtained.
 
-            if (jobforStop == NULL) {
-                 printf("jid: %d was not found among the current jobs\n", jidforStop);
+            if (jobforStop == NULL)
+            {
+                printf("jid: %d was not found among the current jobs\n", jidforStop);
             }
-            else {
-                int status = killpg(command -> pid, SIGSTOP); // The signal can be 
-                                                              // set as stop
-                if (status != 0) {
-                    jobforStop->status = STOPPED; // The status should
-                                                  // be regarded as stop
-                    termstate_save(&jobforStop->saved_tty_state); // the state of 
+            else
+            {
+                int status = killpg(command->pid, SIGSTOP); // The signal can be
+                                                            // set as stop
+                if (status != 0)
+                {
+                    jobforStop->status = STOPPED;                 // The status should
+                                                                  // be regarded as stop
+                    termstate_save(&jobforStop->saved_tty_state); // the state of
                                                                   // terminal is saved.
                 }
-                else {
+                else
+                {
                     printf("Stop on job: %d was unsuccessful\n", jidforStop);
                 }
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for command 'stop'\n");
         }
         return 1;
     }
-    else if (strcmp(argv[0], "exit") == 0) {
+    else if (strcmp(argv[0], "exit") == 0)
+    {
         // exit
-         exit(0);
+        exit(0);
     }
     return 0;
 }
@@ -912,7 +943,7 @@ int main(int ac, char *av[])
 
         /* Do not output a prompt unless shell's stdin is a terminal */
 
-        //getPath();
+        // getPath();
         char *prompt = isatty(0) ? build_prompt(&num_com) : NULL;
         char *cmdline = readline(prompt);
         free(prompt);
@@ -937,8 +968,8 @@ int main(int ac, char *av[])
             ast_command_line_free(cline);
             continue;
         }
-        //ast_command_line_print(cline); /* Output a representation of
-                                          /* the entered command line */
+        // ast_command_line_print(cline); /* Output a representation of
+        /* the entered command line */
         // We may focus on each pipeline
         for (struct list_elem *e = list_begin(&cline->pipes);
              e != list_end(&cline->pipes);
@@ -949,8 +980,6 @@ int main(int ac, char *av[])
             execute(pipe);
         }
 
-        
-
         /* Free the command line.
          * This will free the ast_pipeline objects still contained
          * in the ast_command_line.  Once you implement a job list
@@ -959,9 +988,8 @@ int main(int ac, char *av[])
          * manage the lifetime of the associated ast_pipelines.
          * Otherwise, freeing here will cause use-after-free errors.
          */
-        //ast_command_line_free(cline);
+        // ast_command_line_free(cline);
         free(cline);
     }
     return 0;
 }
-
