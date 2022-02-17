@@ -204,7 +204,7 @@ static void remove_stopped_job(int jid)
 
     for (int i = 0; i < stopped_job_num; i++)
     {
-        if (!start & (jid == stopped_job[i]))
+        if (!start && (jid == stopped_job[i]))
         {
             // The job is detected
             start = true;
@@ -574,7 +574,7 @@ static void execute(struct ast_pipeline *currpipeline)
 
     // We would like to add jobs to the current pipeline
     struct job *job = add_job(currpipeline);
-
+    
     // Right now, we should make some pipes, a technique used to
     // maintain the connection between two proceses.
     int size = list_size(&currpipeline->commands);
@@ -616,10 +616,6 @@ static void execute(struct ast_pipeline *currpipeline)
 
     signal_block(SIGCHLD);
     int success = -1;
-    if (runBuiltIn(currpipeline))
-    {
-        return;
-    }
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
     {
@@ -631,8 +627,12 @@ static void execute(struct ast_pipeline *currpipeline)
 
         posix_spawnattr_t attr;
         posix_spawnattr_init(&attr);
-        posix_spawnattr_setflags(&attr, POSIX_SPAWN_TCSETPGROUP | POSIX_SPAWN_SETPGROUP);
-        posix_spawnattr_tcsetpgrp_np(&attr, termstate_get_tty_fd());
+        if(currpipeline->bg_job){
+            posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
+        } else {
+            posix_spawnattr_setflags(&attr, POSIX_SPAWN_TCSETPGROUP | POSIX_SPAWN_SETPGROUP);
+            posix_spawnattr_tcsetpgrp_np(&attr, termstate_get_tty_fd());
+        }
         posix_spawnattr_setpgroup(&attr, 0);
 
         struct ast_command *command = list_entry(e, struct ast_command, elem);
@@ -716,6 +716,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         if (argc == 1)
         {
             printf("fg: job id missing\n");
+            return 1;
         }
         else
         {
@@ -734,8 +735,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
             }
         }
 
-        // The job was found.
-        signal_block(SIGCHLD);
+        // The job was found
         int status = killpg(command->pid, SIGCONT); // the signal we are available to use in the command fg
                                                     // is SIGCONT
 
@@ -746,14 +746,15 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
             fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
             print_job(fgJob);           // print the job
             wait_for_job(fgJob);        // wait for the job to complete other processes
+            if (fgJob->status == FOREGROUND) {
+                delete_job(fgJob);
+            }
         }
         else
         {
             printf("fg on job: %d was unsuccessful\n", jidforFg);
         }
-        signal_unblock(SIGCHLD);
         termstate_give_terminal_back_to_shell();
-
         return 1;
     }
     else if (strcmp(argv[0], "bg") == 0)
@@ -977,7 +978,9 @@ int main(int ac, char *av[])
         {
             // We deal with pipe one-by-one.
             struct ast_pipeline *pipe = list_entry(e, struct ast_pipeline, elem);
-            execute(pipe);
+            if (!runBuiltIn(pipe)) {
+                execute(pipe);
+            }
         }
 
         /* Free the command line.
