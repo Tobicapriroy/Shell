@@ -425,11 +425,10 @@ handle_child_status(pid_t pid, int status)
 
 static void execute(struct ast_pipeline *currpipeline)
 {
-
+    signal_block(SIGCHLD);
     // We would like to add jobs to the current pipeline
     struct job *job = add_job(currpipeline);
-
-    signal_block(SIGCHLD);
+    
     int success = -1;
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
@@ -521,15 +520,14 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
             else
             {
 
-                struct ast_pipeline *pipe = killJob->pipe;
-                command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
-
                 // If the job was found, a signal can be set.
-                int status = killpg(killJob -> pgid, SIGTERM);
+                int status = killpg(killJob->pgid, SIGTERM);
+                
 
-                if (status != 0)
+                if (status == 0)
                 {
                     // If the status succeeds, we can remove it from the list.
+                    waitpid(killJob->pgid, &status, WUNTRACED);
                     remove_from_list(killJob);
                 }
                 else
@@ -803,7 +801,6 @@ int main(int ac, char *av[])
                 execute(pipe);
             }
         }
-
         /* Free the command line.
          * This will free the ast_pipeline objects still contained
          * in the ast_command_line.  Once you implement a job list
