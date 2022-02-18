@@ -71,6 +71,7 @@ struct job
                                        stopped after having been in foreground */
 
     /* Add additional fields here if needed. */
+    int pgid;
 };
 
 /* Utility functions for job list management.
@@ -464,6 +465,10 @@ static void execute(struct ast_pipeline *currpipeline)
             break;
         }
         command->pid = child;
+        if (e == list_begin(&currpipeline->commands)) 
+        {
+            job->pgid = command->pid;
+        }
     }
     if (success == 0)
     {
@@ -546,7 +551,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
             printf("fg: job id missing\n");
             return 1;
         }
-        else
+        else if (argc == 2)
         {
             jidforFg = atoi(argv[1]);
             fgJob = get_job_from_jid(jidforFg);
@@ -562,6 +567,9 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 return 1;
             }
         }
+        else {
+            printf("Incorrect number of arguments for the command 'fg'\n");
+        }
 
         struct ast_pipeline *pipe = fgJob->pipe;
         command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
@@ -571,7 +579,8 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
 
         if (status == 0)
         {
-            termstate_give_terminal_to(&fgJob->saved_tty_state, command->pid);
+            
+            termstate_give_terminal_to(&fgJob->saved_tty_state, fgJob->pgid);
             fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
             print_job(fgJob);           // print the job
             wait_for_job(fgJob);        // wait for the job to complete other processes
@@ -639,12 +648,12 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     else if (strcmp(argv[0], "jobs") == 0)
     {
         // jobs
-
-        if (!list_empty(&job_list))
-        {
-            for (struct list_elem *e = list_begin(&job_list);
-                 e != list_end(&job_list); e = list_next(e))
+        if (argc == 1) {
+            if (!list_empty(&job_list))
             {
+              for (struct list_elem *e = list_begin(&job_list);
+                 e != list_end(&job_list); e = list_next(e))
+              {
                 // We basically use a for loop to keep track of each job in the
                 // job list.
                 struct job *currJob = list_entry(e, struct job, elem);
@@ -652,9 +661,17 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 print_job(currJob);
                 if (currJob->status == DONE)
                 {
+                    e = list_prev(e);
                     remove_from_list(currJob);
                 }
+              }
             }
+            else {
+                printf("There are currently not jobs in the job list.\n");
+            }
+        }
+        else {
+            printf("Incorrect number of arguments for the command jobs\n");
         }
         return 1;
     }
