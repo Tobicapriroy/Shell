@@ -586,7 +586,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         if (status == 0)
         {
             
-            termstate_give_terminal_to(&fgJob->saved_tty_state, fgJob->pgid);
+            termstate_give_terminal_to(NULL, fgJob->pgid);
             fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
             print_job(fgJob);           // print the job
             wait_for_job(fgJob);        // wait for the job to complete other processes
