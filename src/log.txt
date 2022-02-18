@@ -1,1 +1,22 @@
-1 cush in src> 
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -divzero/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -divzero
+
+floating point exception
+Success
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -segfault/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -segfault
+
+segmentation fault
+Success
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -abort/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai -abort
+
+aborted
+Success
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai
+
+killed
+Success
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpF2uJai
+
+terminated
+Success
+cush> exitexit
+
