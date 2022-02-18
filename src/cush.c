@@ -71,7 +71,7 @@ struct job
                                        stopped after having been in foreground */
 
     /* Add additional fields here if needed. */
-    int pgid;
+    pid_t pgid;
 };
 
 /* Utility functions for job list management.
@@ -465,9 +465,15 @@ static void execute(struct ast_pipeline *currpipeline)
             break;
         }
         command->pid = child;
+
+        // The process group id is supposed to be the first process id.
         if (e == list_begin(&currpipeline->commands)) 
         {
             job->pgid = command->pid;
+        } 
+
+        if (currpipeline->bg_job) {
+            printf("[%d] %d\n", job ->jid, command->pid);
         }
     }
     if (success == 0)
@@ -519,9 +525,9 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
 
                 // If the job was found, a signal can be set.
-                int status = killpg(command->pid, SIGTERM);
+                int status = killpg(killJob -> pgid, SIGTERM);
 
-                if (status == 0)
+                if (status != 0)
                 {
                     // If the status succeeds, we can remove it from the list.
                     remove_from_list(killJob);
@@ -574,7 +580,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         struct ast_pipeline *pipe = fgJob->pipe;
         command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
         // The job was found
-        int status = killpg(command->pid, SIGCONT); // the signal we are available to use in the command fg
+        int status = killpg(fgJob->pgid, SIGCONT); // the signal we are available to use in the command fg
                                                     // is SIGCONT
 
         if (status == 0)
@@ -627,7 +633,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
 
         struct ast_pipeline *pipe = bgJob->pipe;
         command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
-        int status = killpg(command->pid, SIGCONT); // Similar to what we
+        int status = killpg(bgJob->pgid, SIGCONT); // Similar to what we
                                                     // have done before,
                                                     // the signal should
                                                     // be set to SIGCONT;
@@ -698,7 +704,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 struct ast_pipeline *pipe = jobforStop->pipe;
                 command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
 
-                int status = killpg(command->pid, SIGSTOP); // The signal can be
+                int status = killpg(jobforStop->pgid, SIGSTOP); // The signal can be
                                                             // set as stop
                 if (status == 0)
                 {
