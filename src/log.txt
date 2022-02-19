@@ -1,20 +1,20 @@
-cush> /home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -divzero/home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -divzero
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -divzero/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -divzero
 
 floating point exception
 Success
-cush> /home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -segfault/home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -segfault
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -segfault/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -segfault
 
 segmentation fault
 Success
-cush> /home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -abort/home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz -abort
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -abort/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40 -abort
 
 aborted
 Success
-cush> /home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz/home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40
 
 killed
 Success
-cush> /home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz/home/ugrads/nonmajors/zih19/CS3214Proj1/cs3214-cush/src/.tmp/tmpah4Urz
+cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpSs5v40
 
 terminated
 Success

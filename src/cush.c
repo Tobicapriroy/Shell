@@ -460,7 +460,7 @@ static void execute(struct ast_pipeline *currpipeline)
         success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
         if (success != 0)
         {
-            fprintf(stderr, "cush: %s: command not found\n", command->argv[0]);
+            fprintf(stderr, "no such file or directory\n");
             break;
         }
         command->pid = child;
@@ -478,6 +478,7 @@ static void execute(struct ast_pipeline *currpipeline)
     if (success == 0)
     {
         wait_for_job(job);
+        signal_unblock(SIGCHLD);
     } else {
         remove_from_list(job);
         termstate_give_terminal_back_to_shell();
@@ -545,8 +546,8 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     }
     else if (strcmp(argv[0], "fg") == 0)
     {
+        signal_block(SIGCHLD);
         // fg
-
         struct job *fgJob = NULL; // the job for fg
         int jidforFg = 0;         // the job id for fg
 
@@ -588,6 +589,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
             fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
             print_job(fgJob);           // print the job
             wait_for_job(fgJob);        // wait for the job to complete other processes
+            signal_unblock(SIGCHLD);
             if (fgJob->status == FOREGROUND)
             {
                 remove_from_list(fgJob);
@@ -639,6 +641,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         {
             // The signal is valid.
             bgJob->status = BACKGROUND; // It enters the background stage.
+            signal_unblock(SIGCHLD);
             print_job(bgJob);
         }
         else
@@ -652,6 +655,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     else if (strcmp(argv[0], "jobs") == 0)
     {
         // jobs
+        signal_block(SIGCHLD);
         if (argc == 1) {
             if (!list_empty(&job_list))
             {
