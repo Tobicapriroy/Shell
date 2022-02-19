@@ -463,8 +463,6 @@ static void execute(struct ast_pipeline *currpipeline)
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
          e = list_next(e))
     {
-
-        job->num_processes_alive++;
         pid_t child; // a child is established.
         posix_spawn_file_actions_t file_actions;
         posix_spawn_file_actions_init(&file_actions);
@@ -491,6 +489,7 @@ static void execute(struct ast_pipeline *currpipeline)
         success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
         if (success != 0)
         {
+            // The child process
             for (int i = 0; i <= size; i++) {
                 if (i == commndNum) {
                     if (i == 0) {
@@ -538,17 +537,41 @@ static void execute(struct ast_pipeline *currpipeline)
             printf("[%d] %d\n", job ->jid, command->pid);
         }
 
+        job->num_processes_alive++;
         commndNum++;
     }
+
+    for (int i = 0; i < size; i++) {
+        if (i == 0) {
+            if (inputfd > 0) {
+                close(pipes[i][0]);
+            }
+            else {
+                close(pipes[i][0]);
+                close(pipes[i][1]);
+            }
+        }
+        else {
+            close(pipes[i][0]);
+            close(pipes[i][1]);
+        }
+    }
+
     if (success == 0)
     {
         wait_for_job(job);
         signal_unblock(SIGCHLD);
-    } else {
+    } 
+    else {
         remove_from_list(job);
         termstate_give_terminal_back_to_shell();
         return;
     }
+
+    if (job->status == FOREGROUND) {
+
+    }
+
     if (job->status == DONE)
     {
         print_job(job);
