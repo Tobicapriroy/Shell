@@ -57,7 +57,7 @@ enum job_status
     STOPPED,       /* job is stopped via SIGSTOP */
     NEEDSTERMINAL, /* job is stopped because it was a background job
                       and requires exclusive terminal access */
-    DONE           /* the process when it is finished */
+    DONE           /* the job that is finished */
 };
 
 struct job
@@ -431,32 +431,38 @@ static void execute(struct ast_pipeline *currpipeline)
     int size = list_size(&currpipeline->commands);
 
     int pipes[size][2]; // read and write
+                        // 0 stands for read
+                        // 1 stands for write
 
     for (int i = 0; i < size + 1; i++) {
-        pipe(pipes[i]);
+        pipe2(pipes[i], O_CLOEXEC);
     }
 
-    // I am going to deal with the input.
-    int inputfd = -1;
+    // // I am going to deal with the input with its corresponding
+    // // file descriptor
+    // int inputfd = -1;
 
-    while(currpipeline->iored_input != NULL) {
-        inputfd = open(currpipeline->iored_input, O_RDONLY);
-    }
+    // while(currpipeline->iored_input != NULL) {
+    //     inputfd = open(currpipeline->iored_input, O_RDONLY);
+    // }
 
-    // I am going to deal with the output.
-    int outputfd = -1;
+    // // I am going to deal with the output with its corresponding
+    // // file descriptor.
+    // int outputfd = -1;
     
-    while(currpipeline->iored_output != NULL) {
+    // while(currpipeline->iored_output != NULL) {
 
-        if (currpipeline->append_to_output) {
-            outputfd = open(currpipeline->iored_output, O_WRONLY|O_CREAT|O_APPEND);
-        }
-        else {
-            outputfd = open(currpipeline->iored_output, O_WRONLY|O_CREAT);
-        }
-    }
+    //     if (currpipeline->append_to_output) {
+    //         outputfd = open(currpipeline->iored_output, O_WRONLY|O_CREAT|O_APPEND);
+    //     }
+    //     else {
+    //         outputfd = open(currpipeline->iored_output, O_WRONLY|O_CREAT);
+    //     }
+    // }
 
     signal_block(SIGCHLD);
+    //int inputfd = -1;
+    //int outputfd = -1;
     
     int commndNum = 0;
     int success = -1; // the child process
@@ -480,48 +486,64 @@ static void execute(struct ast_pipeline *currpipeline)
             posix_spawnattr_setflags(&attr, POSIX_SPAWN_TCSETPGROUP | POSIX_SPAWN_SETPGROUP);
             posix_spawnattr_tcsetpgrp_np(&attr, termstate_get_tty_fd());
         }
-
-        posix_spawnattr_setpgroup(&attr, 0);
+        if (list_begin(&currpipeline->commands)) 
+        {
+            posix_spawnattr_setpgroup(&attr, 0);
+        }
+        else {
+            posix_spawnattr_setpgroup(&attr, job->pgid);
+        }
 
         struct ast_command *command = list_entry(e, struct ast_command, elem);
+        
+
+        //addopen(open)
+        if (e) {
+            if(currpipeline->iored_input) {
+                posix_spawn_file_actions_addopen(&file_actions, 0, currpipeline->iored_input, O_RDONLY, 0);        
+            }
+        }
+
+        if (list_end(&currpipeline->commands)) {
+            if (currpipeline->iored_output) {
+                if (currpipeline->append_to_output) {
+                   posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY|O_CREAT|O_APPEND, S_IRWXU);        
+                }
+                else {
+                   posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY|O_CREAT, S_IRWXU);
+                }
+            }
+
+        }
+        
+        if (command->dup_stderr_to_stdout) {
+            posix_spawn_file_actions_adddup2(&file_actions, 2, 1);
+        }
+         
+        //piping(dup2)
+        // (1) check it is the first and the last
+        // (2) check it is the first
+        // (3) check it is the last
+        // (4) check it is the middle
+        
+        if (list_begin(&currpipeline->commands) && list_end(&currpipeline->commands)) {
+
+        }
+        else if (list_begin(&currpipeline->commands)) {
+           posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
+        }
+        else if (list_begin(&currpipeline->commands)) {
+            posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+        }
+        else {
+            posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
+            posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+        }
 
         // This is the scenario used to handle the child status.
         success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
         if (success != 0)
         {
-            // The child process
-            for (int i = 0; i <= size; i++) {
-                if (i == commndNum) {
-                    if (i == 0) {
-                        if (inputfd > 0) {
-                            dup2(inputfd, STDIN_FILENO);
-                        }
-                    }
-                    else {
-                        dup2(pipes[i][0], STDIN_FILENO);
-                    }
-                }
-                else if (i == (commndNum + 1)) {
-                    if (i == size) {
-                        if (outputfd > 0) {
-                            dup2(outputfd, STDOUT_FILENO);
-                        }
-                    }
-                    else {
-                        dup2(pipes[i][1], STDOUT_FILENO);
-                    }
-                }
-
-                if (i < size) {
-                    close(pipes[i][0]);
-                    close(pipes[i][1]);
-                }
-            }
-
-            if (command->dup_stderr_to_stdout) {
-                dup2(STDOUT_FILENO, STDERR_FILENO);
-            }
-
             fprintf(stderr, "no such file or directory\n");
             break;
         }
@@ -531,7 +553,7 @@ static void execute(struct ast_pipeline *currpipeline)
         if (e == list_begin(&currpipeline->commands)) 
         {
             job->pgid = command->pid;
-        } 
+        }
 
         if (currpipeline->bg_job) {
             printf("[%d] %d\n", job ->jid, command->pid);
@@ -541,9 +563,11 @@ static void execute(struct ast_pipeline *currpipeline)
         commndNum++;
     }
 
+    // The parent process pid
     for (int i = 0; i < size; i++) {
         if (i == 0) {
-            if (inputfd > 0) {
+            // For parent, the input file descriptor is addopen().
+            if (STDIN_FILENO > 0) {
                 close(pipes[i][0]);
             }
             else {
@@ -557,6 +581,8 @@ static void execute(struct ast_pipeline *currpipeline)
         }
     }
 
+    //termstate_save(&job->saved_tty_state);
+
     if (success == 0)
     {
         wait_for_job(job);
@@ -565,11 +591,17 @@ static void execute(struct ast_pipeline *currpipeline)
     else {
         remove_from_list(job);
         termstate_give_terminal_back_to_shell();
+        signal_unblock(SIGCHLD);
         return;
     }
 
-    if (job->status == FOREGROUND) {
-
+    /* if (job -> status == FOREGROUND) {
+        termstate_give_terminal_to(&job->saved_tty_state, job->pgid);
+        wait_for_job(job);
+    }
+ */
+    if (job -> status == BACKGROUND) {
+        printf("[%d] %d\n", job ->jid, job->pgid);
     }
 
     if (job->status == DONE)
@@ -577,6 +609,11 @@ static void execute(struct ast_pipeline *currpipeline)
         print_job(job);
         remove_from_list(job);
     }
+
+    //termstate_give_terminal_back_to_shell();
+
+    //signal_unblock(SIGCHLD);
+
 }
 
 static int runBuiltIn(struct ast_pipeline *currpipeline)
