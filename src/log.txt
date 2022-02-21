@@ -1,22 +1,4 @@
-cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -divzero/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -divzero
+cush> echo hello |& revecho hello |& rev
 
-floating point exception
-Success
-cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -segfault/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -segfault
-
-segmentation fault
-Success
-cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -abort/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd -abort
-
-aborted
-Success
-cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd
-
-killed
-Success
-cush> /home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd/home/ugrads/nonmajors/marktd19/Systems/cs3214-cush/src/.tmp/tmpyuqGBd
-
-terminated
-Success
-cush> exitexit
-
+hello
+cush> 

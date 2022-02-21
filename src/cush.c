@@ -880,6 +880,20 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         // exit
         exit(0);
     }
+    else if (strcmp(argv[0], "cd") == 0)
+    {
+        if (argc == 1) {
+            chdir(getenv("HOME"));
+        }
+        else
+        {
+            if (chdir(argv[1]))
+            {
+                printf("cush: cd: %s: No such file or directory\n");
+            }
+        }
+        return 1;
+    }
 
     return 0;
 }
