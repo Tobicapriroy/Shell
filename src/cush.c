@@ -428,13 +428,13 @@ static void execute(struct ast_pipeline *currpipeline)
     // We would like to add jobs to the current pipeline
     struct job *job = add_job(currpipeline);
 
-    int size = list_size(&currpipeline->commands);
+    int size = list_size(&currpipeline->commands) - 1;
 
     int pipes[size][2]; // read and write
                         // 0 stands for read
                         // 1 stands for write
 
-    for (int i = 0; i < size + 1; i++)
+    for (int i = 0; i < size; i++)
     {
         pipe2(pipes[i], O_CLOEXEC);
     }
@@ -535,21 +535,21 @@ static void execute(struct ast_pipeline *currpipeline)
 
         if (list_size(&currpipeline->commands) > 1)
         {
-            if (list_begin(&currpipeline->commands))
+            if (list_begin(&currpipeline->commands) == e)
             {
                 // the first command: stdin
-                posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, pipes[commndNum][1], STDOUT_FILENO);
             }
-            else if (list_end(&currpipeline->commands))
+            else if (commndNum == size)
             {
                 // the last command: stdout
-                posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, pipes[commndNum-1][0], STDIN_FILENO);
             }
             else
             {
                 // the middle command: stdin and stdout
-                posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
-                posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, pipes[commndNum-1][0], STDIN_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, pipes[commndNum][1], STDOUT_FILENO);
             }
         }
 
