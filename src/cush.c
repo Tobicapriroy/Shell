@@ -434,7 +434,8 @@ static void execute(struct ast_pipeline *currpipeline)
                         // 0 stands for read
                         // 1 stands for write
 
-    for (int i = 0; i < size + 1; i++) {
+    for (int i = 0; i < size + 1; i++)
+    {
         pipe2(pipes[i], O_CLOEXEC);
     }
 
@@ -449,7 +450,7 @@ static void execute(struct ast_pipeline *currpipeline)
     // // I am going to deal with the output with its corresponding
     // // file descriptor.
     // int outputfd = -1;
-    
+
     // while(currpipeline->iored_output != NULL) {
 
     //     if (currpipeline->append_to_output) {
@@ -461,9 +462,9 @@ static void execute(struct ast_pipeline *currpipeline)
     // }
 
     signal_block(SIGCHLD);
-    //int inputfd = -1;
-    //int outputfd = -1;
-    
+    // int inputfd = -1;
+    // int outputfd = -1;
+
     int commndNum = 0;
     int success = -1; // the child process
     for (struct list_elem *e = list_begin(&currpipeline->commands); e != list_end(&currpipeline->commands);
@@ -486,58 +487,70 @@ static void execute(struct ast_pipeline *currpipeline)
             posix_spawnattr_setflags(&attr, POSIX_SPAWN_TCSETPGROUP | POSIX_SPAWN_SETPGROUP);
             posix_spawnattr_tcsetpgrp_np(&attr, termstate_get_tty_fd());
         }
-        if (list_begin(&currpipeline->commands)) 
+        if (list_begin(&currpipeline->commands))
         {
             posix_spawnattr_setpgroup(&attr, 0);
         }
-        else {
+        else
+        {
             posix_spawnattr_setpgroup(&attr, job->pgid);
         }
 
         struct ast_command *command = list_entry(e, struct ast_command, elem);
-        
 
-        //addopen(open)
-        if (list_begin(&currpipeline->commands)) {
-            if(currpipeline->iored_input) {
-                posix_spawn_file_actions_addopen(&file_actions, 0, currpipeline->iored_input, O_RDONLY, 0);        
+        // addopen(open)
+        if (list_begin(&currpipeline->commands))
+        {
+            if (currpipeline->iored_input)
+            {
+                posix_spawn_file_actions_addopen(&file_actions, 0, currpipeline->iored_input, O_RDONLY, 0);
             }
         }
 
-        if (list_end(&currpipeline->commands)) {
-            if (currpipeline->iored_output) {
-                if (currpipeline->append_to_output) {
-                   posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY|O_CREAT|O_APPEND, S_IRWXU);        
+        if (list_end(&currpipeline->commands))
+        {
+            if (currpipeline->iored_output)
+            {
+                if (currpipeline->append_to_output)
+                {
+                    posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU);
                 }
-                else {
-                   posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY|O_CREAT, S_IRWXU);
+                else
+                {
+                    posix_spawn_file_actions_addopen(&file_actions, 1, currpipeline->iored_output, O_WRONLY | O_CREAT, S_IRWXU);
                 }
             }
-
         }
-        
-        if (command->dup_stderr_to_stdout) {
+
+        if (command->dup_stderr_to_stdout)
+        {
             posix_spawn_file_actions_adddup2(&file_actions, 2, 1);
         }
-         
-        //piping(dup2)
-        // (1) check it is the first and the last
-        // (2) check it is the first
-        // (3) check it is the last
-        // (4) check it is the middle
-        
-        if (list_begin(&currpipeline->commands) && list_end(&currpipeline->commands)) {
 
-        }
-        else if (list_begin(&currpipeline->commands)) {
-           posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
-        }
-        else if (list_begin(&currpipeline->commands)) {
-            posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
-        }
-        else {
-            posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
-            posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+        // piping(dup2)
+        //  (1) check it is the first and the last
+        //  (2) check it is the first
+        //  (3) check it is the last
+        //  (4) check it is the middle
+
+        if (list_size(&currpipeline->commands) > 1)
+        {
+            if (list_begin(&currpipeline->commands))
+            {
+                // the first command: stdin
+                posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
+            }
+            else if (list_end(&currpipeline->commands))
+            {
+                // the last command: stdout
+                posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+            }
+            else
+            {
+                // the middle command: stdin and stdout
+                posix_spawn_file_actions_adddup2(&file_actions, 0, STDIN_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, 1, STDOUT_FILENO);
+            }
         }
 
         // This is the scenario used to handle the child status.
@@ -550,13 +563,14 @@ static void execute(struct ast_pipeline *currpipeline)
         command->pid = child;
 
         // The process group id is supposed to be the first process id.
-        if (e == list_begin(&currpipeline->commands)) 
+        if (e == list_begin(&currpipeline->commands))
         {
             job->pgid = command->pid;
         }
 
-        if (currpipeline->bg_job) {
-            printf("[%d] %d\n", job ->jid, command->pid);
+        if (currpipeline->bg_job)
+        {
+            printf("[%d] %d\n", job->jid, command->pid);
         }
 
         job->num_processes_alive++;
@@ -564,31 +578,37 @@ static void execute(struct ast_pipeline *currpipeline)
     }
 
     // The parent process pid
-    for (int i = 0; i < size; i++) {
-        if (i == 0) {
+    for (int i = 0; i < size; i++)
+    {
+        if (i == 0)
+        {
             // For parent, the input file descriptor is addopen().
-            if (STDIN_FILENO > 0) {
+            if (STDIN_FILENO > 0)
+            {
                 close(pipes[i][0]);
             }
-            else {
+            else
+            {
                 close(pipes[i][0]);
                 close(pipes[i][1]);
             }
         }
-        else {
+        else
+        {
             close(pipes[i][0]);
             close(pipes[i][1]);
         }
     }
 
-    //termstate_save(&job->saved_tty_state);
+    // termstate_save(&job->saved_tty_state);
 
     if (success == 0)
     {
         wait_for_job(job);
         signal_unblock(SIGCHLD);
-    } 
-    else {
+    }
+    else
+    {
         remove_from_list(job);
         termstate_give_terminal_back_to_shell();
         signal_unblock(SIGCHLD);
@@ -600,8 +620,9 @@ static void execute(struct ast_pipeline *currpipeline)
         wait_for_job(job);
     }
  */
-    if (job -> status == BACKGROUND) {
-        printf("[%d] %d\n", job ->jid, job->pgid);
+    if (job->status == BACKGROUND)
+    {
+        printf("[%d] %d\n", job->jid, job->pgid);
     }
 
     if (job->status == DONE)
@@ -610,10 +631,9 @@ static void execute(struct ast_pipeline *currpipeline)
         remove_from_list(job);
     }
 
-    //termstate_give_terminal_back_to_shell();
+    // termstate_give_terminal_back_to_shell();
 
-    //signal_unblock(SIGCHLD);
-
+    // signal_unblock(SIGCHLD);
 }
 
 static int runBuiltIn(struct ast_pipeline *currpipeline)
@@ -648,7 +668,6 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
 
                 // If the job was found, a signal can be set.
                 int status = killpg(killJob->pgid, SIGTERM);
-                
 
                 if (status == 0)
                 {
@@ -697,7 +716,8 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 return 1;
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for the command 'fg'\n");
         }
 
@@ -705,11 +725,11 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
         // The job was found
         int status = killpg(fgJob->pgid, SIGCONT); // the signal we are available to use in the command fg
-                                                    // is SIGCONT
+                                                   // is SIGCONT
 
         if (status == 0)
         {
-            
+
             termstate_give_terminal_to(NULL, fgJob->pgid);
             fgJob->status = FOREGROUND; // the status of the job can be switched into FOREGROUND
             print_job(fgJob);           // print the job
@@ -759,9 +779,9 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         struct ast_pipeline *pipe = bgJob->pipe;
         command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
         int status = killpg(bgJob->pgid, SIGCONT); // Similar to what we
-                                                    // have done before,
-                                                    // the signal should
-                                                    // be set to SIGCONT;
+                                                   // have done before,
+                                                   // the signal should
+                                                   // be set to SIGCONT;
         if (status == 0)
         {
             // The signal is valid.
@@ -781,29 +801,32 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     {
         // jobs
         signal_block(SIGCHLD);
-        if (argc == 1) {
+        if (argc == 1)
+        {
             if (!list_empty(&job_list))
             {
-              for (struct list_elem *e = list_begin(&job_list);
-                 e != list_end(&job_list); e = list_next(e))
-              {
-                // We basically use a for loop to keep track of each job in the
-                // job list.
-                struct job *currJob = list_entry(e, struct job, elem);
-
-                print_job(currJob);
-                if (currJob->status == DONE)
+                for (struct list_elem *e = list_begin(&job_list);
+                     e != list_end(&job_list); e = list_next(e))
                 {
-                    e = list_prev(e);
-                    remove_from_list(currJob);
+                    // We basically use a for loop to keep track of each job in the
+                    // job list.
+                    struct job *currJob = list_entry(e, struct job, elem);
+
+                    print_job(currJob);
+                    if (currJob->status == DONE)
+                    {
+                        e = list_prev(e);
+                        remove_from_list(currJob);
+                    }
                 }
-              }
             }
-            else {
+            else
+            {
                 printf("There are currently not jobs in the job list.\n");
             }
         }
-        else {
+        else
+        {
             printf("Incorrect number of arguments for the command jobs\n");
         }
         return 1;
@@ -832,7 +855,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
 
                 int status = killpg(jobforStop->pgid, SIGSTOP); // The signal can be
-                                                            // set as stop
+                                                                // set as stop
                 if (status == 0)
                 {
                     jobforStop->status = STOPPED;                 // The status should
