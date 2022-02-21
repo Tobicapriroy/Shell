@@ -72,6 +72,7 @@ struct job
 
     /* Add additional fields here if needed. */
     pid_t pgid;
+    
 };
 
 /* Utility functions for job list management.
@@ -522,10 +523,6 @@ static void execute(struct ast_pipeline *currpipeline)
             }
         }
 
-        if (command->dup_stderr_to_stdout)
-        {
-            posix_spawn_file_actions_adddup2(&file_actions, 2, 1);
-        }
 
         // piping(dup2)
         //  (1) check it is the first and the last
@@ -533,7 +530,7 @@ static void execute(struct ast_pipeline *currpipeline)
         //  (3) check it is the last
         //  (4) check it is the middle
 
-        if (list_size(&currpipeline->commands) > 1)
+         if (list_size(&currpipeline->commands) > 1)
         {
             if (list_begin(&currpipeline->commands) == e)
             {
@@ -552,6 +549,12 @@ static void execute(struct ast_pipeline *currpipeline)
                 posix_spawn_file_actions_adddup2(&file_actions, pipes[commndNum][1], STDOUT_FILENO);
             }
         }
+
+        if (command->dup_stderr_to_stdout)
+        {
+            posix_spawn_file_actions_adddup2(&file_actions, 1, 2);
+        }
+
 
         // This is the scenario used to handle the child status.
         success = posix_spawnp(&child, command->argv[0], &file_actions, &attr, command->argv, environ);
@@ -580,24 +583,8 @@ static void execute(struct ast_pipeline *currpipeline)
     // The parent process pid
     for (int i = 0; i < size; i++)
     {
-        if (i == 0)
-        {
-            // For parent, the input file descriptor is addopen().
-            if (STDIN_FILENO > 0)
-            {
-                close(pipes[i][0]);
-            }
-            else
-            {
-                close(pipes[i][0]);
-                close(pipes[i][1]);
-            }
-        }
-        else
-        {
-            close(pipes[i][0]);
-            close(pipes[i][1]);
-        }
+        close(pipes[i][0]);
+        close(pipes[i][1]);
     }
 
     // termstate_save(&job->saved_tty_state);
