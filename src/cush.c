@@ -391,7 +391,8 @@ handle_child_status(pid_t pid, int status)
 
                 // The number of processes that is alive decreases.
                 job->num_processes_alive--;
-                if (job->num_processes_alive == 0) {
+                if (job->num_processes_alive == 0)
+                {
                     job->status = DONE;
                 }
             }
@@ -671,8 +672,6 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
 
                 // If the job was found, a signal can be set.
                 killpg(killJob->pgid, SIGTERM);
-
-                
             }
         }
         else
@@ -805,7 +804,6 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                     // job list.
                     struct job *currJob = list_entry(e, struct job, elem);
 
-                    
                     if (currJob->status == DONE)
                     {
                         e = list_prev(e);
@@ -852,13 +850,13 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
                 command = list_entry(list_begin(&pipe->commands), struct ast_command, elem);
 
                 killpg(jobforStop->pgid, SIGSTOP); // The signal can be
-                                                                // set as stop
-                //if (status == 0)
+                                                   // set as stop
+                // if (status == 0)
                 //{
-                //    jobforStop->status = STOPPED;                 // The status should
-                                                                  // be regarded as stop
+                //     jobforStop->status = STOPPED;                 // The status should
+                //  be regarded as stop
                 //    termstate_save(&jobforStop->saved_tty_state); // the state of
-                                                                  // terminal is saved.
+                // terminal is saved.
                 //}
                 /*else
                 {
@@ -895,10 +893,10 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     }
     else if (strcmp(argv[0], "history") == 0)
     {
-        HIST_ENTRY** history = history_list();
-        for (int i = 0; i < history_length; i++) 
+        HIST_ENTRY **history = history_list();
+        for (int i = 0; i < history_length; i++)
         {
-            printf("%d  %s\n", i, history[i]->line);
+            printf("    %d  %s\n", i, history[i]->line);
         }
         return 1;
     }
@@ -906,7 +904,7 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
     return 0;
 }
 
-static int isnum(char* cmd)
+static int isnum(char *cmd)
 {
     for (int i = 0; i < strlen(cmd); i++)
     {
@@ -918,40 +916,55 @@ static int isnum(char* cmd)
     return true;
 }
 
-static char * run_hist(char* hist_cmd)
+static char *run_hist(char *hist_cmd)
 {
     if (strcmp(hist_cmd, "!!") == 0)
     {
-        char* cmd = history_get(history_length)->line;
-        if (cmd == NULL)
+        HIST_ENTRY *entry = history_get(history_length);
+        if (entry == NULL)
         {
             fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+            free(hist_cmd);
+            return NULL;
         }
-        return cmd;
+        free(hist_cmd);
+        printf("%s\n", entry->line);
+        return entry->line;
     }
     else if (strncmp(hist_cmd, "!", 1) == 0)
     {
-        char* com = &hist_cmd[1];
+        char *com = &hist_cmd[1];
         if (isnum(com))
         {
-            char* cmd = history_get(atoi(com))->line;
-            if (cmd == NULL)
+            HIST_ENTRY *entry = history_get(atoi(com));
+            if (entry == NULL)
             {
                 fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+                free(hist_cmd);
+                return NULL;
             }
-            return cmd;
+            free(hist_cmd);
+            printf("%s\n", entry->line);
+            return entry->line;
         }
-        else 
+        else
         {
-            for (int i = history_length-1; i >= 0; i--)
+            for (int i = history_length - 1; i >= 0; i--)
             {
-                char* entry = history_get(i)->line;
-                if (strncmp(com, entry, strlen(com)))
+                HIST_ENTRY *entry = history_get(i);
+                if (entry == NULL)
                 {
-                    return entry;
+                    break;
+                }
+                if (strncmp(com, entry->line, strlen(com)) == 0)
+                {
+                    free(hist_cmd);
+                    printf("%s\n", entry->line);
+                    return entry->line;
                 }
             }
             fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+            free(hist_cmd);
             return NULL;
         }
     }
@@ -996,16 +1009,36 @@ int main(int ac, char *av[])
 
         if (cmdline == NULL) /* User typed EOF */
             break;
-        
-        cmdline = run_hist(cmdline);
 
+        int recent = 0;
+        int hist = 0;
+        if (strcmp(cmdline, "!!") == 0)
+        {
+            recent = 1;
+        }
+        if (strncmp(cmdline, "!", 1) == 0)
+        {
+            hist = 1;
+        }
+        if ((cmdline = run_hist(cmdline)) == NULL)
+        {
+            continue;
+        }
         struct ast_command_line *cline = ast_parse_command_line(cmdline); // We would like to parse
                                                                           // each job, where
                                                                           // job contains multiple
                                                                           // pipelines.
-        add_history(cmdline);
-        free(cmdline);                                                    // We would like to
-        if (cline == NULL)                                                /* Error in command line */
+        if (!recent)
+        {
+            // only add to history if not calling most recent command
+            add_history(cmdline);
+        }
+        if (!hist)
+        {
+            // free if not calling previous command
+            free(cmdline);
+        }
+        if (cline == NULL) /* Error in command line */
             // If something goes wrong with pipeline, what are we supposed
             // to do
             continue;
