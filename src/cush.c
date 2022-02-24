@@ -7,6 +7,7 @@
 #define _GNU_SOURCE 1
 #include <stdio.h>
 #include <readline/readline.h>
+#include <readline/history.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -892,12 +893,74 @@ static int runBuiltIn(struct ast_pipeline *currpipeline)
         }
         return 1;
     }
+    else if (strcmp(argv[0], "history") == 0)
+    {
+        HIST_ENTRY** history = history_list();
+        for (int i = 0; i < history_length; i++) 
+        {
+            printf("%d  %s\n", i, history[i]->line);
+        }
+        return 1;
+    }
 
     return 0;
 }
 
+static int isnum(char* cmd)
+{
+    for (int i = 0; i < strlen(cmd); i++)
+    {
+        if (!isdigit(cmd[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static char * run_hist(char* hist_cmd)
+{
+    if (strcmp(hist_cmd, "!!") == 0)
+    {
+        char* cmd = history_get(history_length)->line;
+        if (cmd == NULL)
+        {
+            fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+        }
+        return cmd;
+    }
+    else if (strncmp(hist_cmd, "!", 1) == 0)
+    {
+        char* com = &hist_cmd[1];
+        if (isnum(com))
+        {
+            char* cmd = history_get(atoi(com))->line;
+            if (cmd == NULL)
+            {
+                fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+            }
+            return cmd;
+        }
+        else 
+        {
+            for (int i = history_length-1; i >= 0; i--)
+            {
+                char* entry = history_get(i)->line;
+                if (strncmp(com, entry, strlen(com)))
+                {
+                    return entry;
+                }
+            }
+            fprintf(stderr, "cush: %s: event not found\n", hist_cmd);
+            return NULL;
+        }
+    }
+    return hist_cmd;
+}
+
 int main(int ac, char *av[])
 {
+    using_history();
     int opt;
     signal(SIGINT, sigintHandler);
 
@@ -933,11 +996,14 @@ int main(int ac, char *av[])
 
         if (cmdline == NULL) /* User typed EOF */
             break;
+        
+        cmdline = run_hist(cmdline);
 
         struct ast_command_line *cline = ast_parse_command_line(cmdline); // We would like to parse
                                                                           // each job, where
                                                                           // job contains multiple
                                                                           // pipelines.
+        add_history(cmdline);
         free(cmdline);                                                    // We would like to
         if (cline == NULL)                                                /* Error in command line */
             // If something goes wrong with pipeline, what are we supposed
